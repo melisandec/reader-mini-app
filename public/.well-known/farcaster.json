@@ -1,10 +1,10 @@
 {
   "accountAssociation": {
-    "header": "",
-    "payload": "",
-    "signature": ""
+    "header": "eyJmaWQiOjQyOTQ1MCwidHlwZSI6ImF1dGgiLCJrZXkiOiIweDk1OTk3MzZGQTU0NzI3MDQwOGFGZjhGNTNCMTZCMDYyODNEM2NDMDUifQ",
+    "payload": "eyJkb21haW4iOiJyZWFkZXItbWluaS1hcHAudmVyY2VsLmFwcCJ9",
+    "signature": "7XxvVhhp6mq0BwQjAGj2mPOhxP76V78tY409aBmh0W1I9AnqACXob7FwG81hEBaF1hbapgc4CMC7qUWttFKtNhs="
   },
-  "miniapp": {
+  "frame": {
     "version": "1",
     "name": "READER",
     "homeUrl": "https://reader-mini-app.vercel.app",
