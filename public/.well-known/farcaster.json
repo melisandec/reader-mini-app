@@ -1,4 +1,9 @@
 {
+  "accountAssociation": {
+    "header": "",
+    "payload": "",
+    "signature": ""
+  },
   "miniapp": {
     "version": "1",
     "name": "READER",
