@@ -1,16 +1,14 @@
 {
-  "accountAssociation": {
-    "header": "eyJmaWQiOjQyOTQ1MCwidHlwZSI6ImF1dGgiLCJrZXkiOiIweDk1OTk3MzZGQTU0NzI3MDQwOGFGZjhGNTNCMTZCMDYyODNEM2NDMDUifQ",
-    "payload": "eyJkb21haW4iOiJyZWFkZXItbWluaS1hcHAudmVyY2VsLmFwcCJ9",
-    "signature": "7XxvVhhp6mq0BwQjAGj2mPOhxP76V78tY409aBmh0W1I9AnqACXob7FwG81hEBaF1hbapgc4CMC7qUWttFKtNhs="
-  },
   "frame": {
-    "version": "1",
     "name": "READER",
-    "homeUrl": "https://reader-mini-app.vercel.app",
+    "version": "1",
     "iconUrl": "https://reader-mini-app.vercel.app/icon.png",
+    "homeUrl": "https://reader-mini-app.vercel.app",
+    "imageUrl": "https://reader-mini-app.vercel.app/splash.png",
+    "buttonTitle": "Open Reader",
     "splashImageUrl": "https://reader-mini-app.vercel.app/splash.png",
     "splashBackgroundColor": "#FFFFFF",
+    "webhookUrl": "https://reader-mini-app.vercel.app/api/webhook",
     "subtitle": "Daily reading tracker",
     "description": "A daily reading tracker that calculates reading speed, streaks, badges, and compares you with other readers.",
     "primaryCategory": "productivity",
@@ -19,6 +17,13 @@
     "ogTitle": "READER Track Your Reading",
     "ogDescription": "A mini app to track reading, build streaks, and read faster every day.",
     "ogImageUrl": "https://reader-mini-app.vercel.app/splash.png",
-    "canonicalDomain": "reader-mini-app.vercel.app"
+    "castShareUrl": "https://warpcast.com/~/compose?text=📚%20Check%20out%20READER,%20a%20mini%20app%20to%20build%20a%20daily%20reading%20habit:%20https://reader-mini-app.vercel.app",
+    "screenshotUrls": ["https://reader-mini-app.vercel.app/splash.png"],
+    "heroImageUrl": "https://reader-mini-app.vercel.app/splash.png"
+  },
+  "accountAssociation": {
+    "header": "eyJmaWQiOjQyOTQ1MCwidHlwZSI6ImF1dGgiLCJrZXkiOiIweDk1OTk3MzZGQTU0NzI3MDQwOGFGZjhGNTNCMTZCMDYyODNEM2NDMDUifQ",
+    "payload": "eyJkb21haW4iOiJyZWFkZXItbWluaS1hcHAudmVyY2VsLmFwcCJ9",
+    "signature": "7XxvVhhp6mq0BwQjAGj2mPOhxP76V78tY409aBmh0W1I9AnqACXob7FwG81hEBaF1hbapgc4CMC7qUWttFKtNhs="
   }
 }
