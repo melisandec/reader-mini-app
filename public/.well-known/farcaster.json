@@ -1,18 +1,19 @@
 {
-  "name": "READER",
-  "description": "Your daily reading tracker",
-  "version": "1.0.0",
-  "author": {
-    "name": "READER Team",
-    "url": "https://reader.app"
-  },
-  "entry_point": "/index.html",
-  "permissions": [],
-  "icons": [
-    {
-      "src": "/icon.png",
-      "sizes": "64x64",
-      "type": "image/png"
-    }
-  ]
+  "miniapp": {
+    "version": "1",
+    "name": "READER",
+    "homeUrl": "https://reader-mini-app.vercel.app",
+    "iconUrl": "https://reader-mini-app.vercel.app/icon.png",
+    "splashImageUrl": "https://reader-mini-app.vercel.app/splash.png",
+    "splashBackgroundColor": "#FFFFFF",
+    "subtitle": "Daily reading tracker",
+    "description": "A daily reading tracker that calculates reading speed, streaks, badges, and compares you with other readers.",
+    "primaryCategory": "productivity",
+    "tags": ["reading", "tracker", "habit", "miniapp"],
+    "tagline": "Turn reading into a daily win",
+    "ogTitle": "READER Track Your Reading",
+    "ogDescription": "A mini app to track reading, build streaks, and read faster every day.",
+    "ogImageUrl": "https://reader-mini-app.vercel.app/splash.png",
+    "canonicalDomain": "reader-mini-app.vercel.app"
+  }
 }
