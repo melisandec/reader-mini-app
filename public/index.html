@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>READER - Daily Reading Tracker</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <div class="dashboard">
+        <div class="header-section">
+          <div class="header-top">
+            <h1 id="mainGreeting">Ready to read today? 📚</h1>
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+              <span class="theme-icon">🌙</span>
+            </button>
+          </div>
+          <p class="welcome-subtitle" id="welcomeMessage">Every page you turn is progress</p>
+          <div class="header-actions">
+            <div class="user-display" id="userDisplay" style="display: none;"></div>
+            <button class="share-button" id="shareButton">
+              <span class="share-icon">📤</span>
+              <span class="share-text">Celebrate</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="stats-container">
+          <!-- Coins Display -->
+          <div class="coins-section">
+            <div class="coins-card">
+              <div class="coins-icon">🪙</div>
+              <div class="coins-info">
+                <div class="coins-label">Reading Rewards</div>
+                <div class="coins-value" id="coinsCount">0</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="streak-section">
+            <div class="streak-card">
+              <div class="streak-icon">🔥</div>
+              <div class="streak-info">
+                <div class="streak-label">Your Streak</div>
+                <div class="streak-value" id="currentStreak">0</div>
+                <div class="streak-label">days</div>
+              </div>
+            </div>
+
+            <div class="streak-card">
+              <div class="streak-icon">⭐</div>
+              <div class="streak-info">
+                <div class="streak-label">Personal Best</div>
+                <div class="streak-value" id="longestStreak">0</div>
+                <div class="streak-label">days</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Badges Display -->
+          <div class="badges-section">
+            <h2 class="badges-title">Badges</h2>
+            <div class="badges-grid" id="badgesContainer">
+              <!-- Badges will be dynamically inserted here -->
+            </div>
+          </div>
+
+          <!-- Global Comparison -->
+          <div class="comparison-section">
+            <div class="comparison-card">
+              <div class="comparison-icon">🌍</div>
+              <div class="comparison-content">
+                <div class="comparison-label">Your Reading Pace</div>
+                <div class="comparison-message" id="comparisonMessage">
+                  Your reading journey is uniquely yours
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Daily Goal Section -->
+          <div class="goal-section">
+            <div class="goal-card">
+              <div class="goal-header">
+                <div class="goal-icon">🎯</div>
+                <div class="goal-info">
+                  <div class="goal-label">Today's Intention</div>
+                  <div class="goal-progress">
+                    <div class="goal-progress-bar">
+                      <div class="goal-progress-fill" id="goalProgressFill"></div>
+                    </div>
+                    <div class="goal-text" id="goalText">0 / 30 min</div>
+                  </div>
+                </div>
+              </div>
+              <button class="goal-edit-btn" id="goalEditBtn">Adjust</button>
+            </div>
+            <div class="goal-editor" id="goalEditor" style="display: none;">
+              <input type="number" id="goalInput" min="5" max="300" value="30" class="goal-input">
+              <span class="goal-input-label">minutes per day</span>
+              <div class="goal-editor-actions">
+                <button class="goal-save-btn" id="goalSaveBtn">Save</button>
+                <button class="goal-cancel-btn" id="goalCancelBtn">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Manual Session Entry Section -->
+        <div class="manual-entry-section">
+          <h2 class="section-title">Log Your Reading</h2>
+          <p class="section-subtitle">Every session matters, no matter how small</p>
+          <div class="manual-entry-card">
+            <form id="manualSessionForm" class="manual-session-form">
+              <div class="form-group">
+                <label for="manualBookName" class="form-label">Book Name *</label>
+                <input type="text" id="manualBookName" placeholder="What story are you living today?" class="form-input" required>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="manualPages" class="form-label">Pages Read *</label>
+                  <input type="number" id="manualPages" placeholder="0" min="0" class="form-input" required>
+                </div>
+                <div class="form-group">
+                  <label for="manualMinutes" class="form-label">Minutes *</label>
+                  <input type="number" id="manualMinutes" placeholder="0" min="1" class="form-input" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="manualDate" class="form-label">Date</label>
+                <input type="date" id="manualDate" class="form-input">
+              </div>
+              <button type="submit" class="form-submit-btn">I Read This</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Focus Mode Section -->
+        <div class="focus-section">
+          <h2 class="section-title">Focus Mode</h2>
+          <p class="section-subtitle">Set aside time just for you and your book</p>
+          <div class="focus-timer-card">
+            <div class="timer-display" id="timerDisplay">00:00</div>
+            <div class="timer-controls">
+              <button class="timer-btn" id="timerStartBtn">Start</button>
+              <button class="timer-btn" id="timerPauseBtn" style="display: none;">Pause</button>
+              <button class="timer-btn" id="timerStopBtn" style="display: none;">Stop</button>
+            </div>
+            <div class="timer-session-info" id="timerSessionInfo" style="display: none;">
+              <input type="text" id="timerBookName" placeholder="What story captured you?" class="timer-book-input">
+              <input type="number" id="timerPages" placeholder="How many pages?" min="0" class="timer-pages-input">
+              <button class="timer-save-btn" id="timerSaveBtn">Save This Moment</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Insights Section -->
+        <div class="insights-section">
+          <h2 class="section-title">What We've Noticed</h2>
+          <p class="section-subtitle">Insights about your reading journey</p>
+          <div class="insights-container" id="insightsContainer">
+            <!-- Insights will be dynamically inserted here -->
+          </div>
+        </div>
+
+        <!-- Heatmap Calendar Section -->
+        <div class="heatmap-section">
+          <h2 class="section-title">Your Reading Journey</h2>
+          <p class="section-subtitle">See how consistently you've shown up</p>
+          <div class="heatmap-container" id="heatmapContainer">
+            <!-- Heatmap will be dynamically inserted here -->
+          </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-section">
+          <h2 class="section-title">Your Progress</h2>
+          <div class="charts-container">
+            <div class="chart-wrapper">
+              <h3 class="chart-title">Reading Speed Over Time</h3>
+              <canvas id="speedChart"></canvas>
+            </div>
+            <div class="chart-wrapper">
+              <h3 class="chart-title">Pages Read Per Day</h3>
+              <canvas id="pagesChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Leaderboard Section -->
+        <div class="leaderboard-section">
+          <h2 class="section-title">Community</h2>
+          <div class="leaderboard-tabs">
+            <button class="tab-button active" data-tab="streaks">Top Streaks</button>
+            <button class="tab-button" data-tab="pages">Top Pages</button>
+          </div>
+          <div class="leaderboard-content">
+            <div class="tab-content active" id="streaksTab">
+              <div class="leaderboard-list" id="streaksLeaderboard">
+                <!-- Streaks leaderboard will be dynamically inserted here -->
+              </div>
+            </div>
+            <div class="tab-content" id="pagesTab">
+              <div class="leaderboard-list" id="pagesLeaderboard">
+                <!-- Pages leaderboard will be dynamically inserted here -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reading History Section -->
+        <div class="history-section">
+          <h2 class="section-title">Your Reading Log</h2>
+          <p class="section-subtitle">A gentle reminder of all the stories you've lived</p>
+          <div class="history-list" id="historyList">
+            <!-- History items will be dynamically inserted here -->
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="main.js"></script>
+  </body>
+</html>

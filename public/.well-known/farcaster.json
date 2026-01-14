@@ -1,0 +1,18 @@
+{
+  "name": "READER",
+  "description": "Your daily reading tracker",
+  "version": "1.0.0",
+  "author": {
+    "name": "READER Team",
+    "url": "https://reader.app"
+  },
+  "entry_point": "/index.html",
+  "permissions": [],
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    }
+  ]
+}
