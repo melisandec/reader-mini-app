@@ -4,7 +4,7 @@
     "version": "1",
     "iconUrl": "https://reader-mini-app.vercel.app/icon-1024px.png",
     "homeUrl": "https://reader-mini-app.vercel.app",
-    "imageUrl": "https://reader-mini-app.vercel.app/hero.png",
+    "imageUrl": "https://reader-mini-app.vercel.app/image.png",
     "buttonTitle": "Start reading",
     "splashImageUrl": "https://reader-mini-app.vercel.app/splash-200px.png",
     "splashBackgroundColor": "#321491",
