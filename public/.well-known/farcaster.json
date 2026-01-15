@@ -22,6 +22,6 @@
     "heroImageUrl": "https://reader-mini-app.vercel.app/hero.png",
     "screenshotUrls": ["https://reader-mini-app.vercel.app/Screenshot-1.png"],
     "canonicalDomain": "reader-mini-app.vercel.app",
-    "castShareUrl": "https://warpcast.com/~/compose?text=📚%20Check%20out%20READER,%20a%20mini%20app%20to%20build%20a%20daily%20reading%20habit:%20https://reader-mini-app.vercel.app"
+    "castShareUrl": "https://reader-mini-app.vercel.app/share"
   }
 }
