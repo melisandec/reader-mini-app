@@ -1246,6 +1246,7 @@ async function shareAchievement(stats) {
     // Determine what achievement to share
     let shareMessage = "";
     const appUrl = "https://reader-mini-app.vercel.app";
+    const shareUrl = "https://reader-mini-app.vercel.app/share";
 
     // Check for recent achievements (streaks, milestones, etc.)
     if (stats.currentStreak >= 7) {
@@ -1271,7 +1272,7 @@ async function shareAchievement(stats) {
 
     // Use Farcaster SDK to compose cast (include URL for embed preview)
     await sdk.actions.composeCast({
-      text: `${shareMessage}\n\n${castShareUrl}`,
+      text: `${shareMessage}\n\n${shareUrl}`,
     });
 
     console.log("Shared achievement:", shareMessage);
