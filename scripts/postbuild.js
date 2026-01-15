@@ -50,6 +50,12 @@ async function copyManifestFiles() {
     path.join(wellKnownSrc, 'farcaster.json'),
     path.join(wellKnownDest, 'farcaster.json')
   );
+
+  // Copy share.html for embed previews
+  await copyIfExists(
+    path.join(publicDir, 'share.html'),
+    path.join(distDir, 'share.html')
+  );
 }
 
 async function run() {

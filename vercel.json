@@ -6,6 +6,10 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/share",
+      "destination": "/share.html"
+    },
+    {
       "source": "/.well-known/farcaster.json",
       "destination": "/farcaster.json"
     },
