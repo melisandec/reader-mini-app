@@ -25,6 +25,9 @@ async function callSdkReady() {
   }
 }
 
+// Call as early as possible to satisfy embed validators
+callSdkReady();
+
 // Initialize the Farcaster Mini App SDK
 async function init() {
   try {
