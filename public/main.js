@@ -1165,6 +1165,7 @@ async function shareAchievement(stats) {
   try {
     // Determine what achievement to share
     let shareMessage = '';
+    const appUrl = 'https://reader-mini-app.vercel.app';
     
     // Check for recent achievements (streaks, milestones, etc.)
     if (stats.currentStreak >= 7) {
@@ -1184,9 +1185,9 @@ async function shareAchievement(stats) {
       shareMessage = `📚 I'm building my reading habit on READER! ${stats.totalPages > 0 ? `Every page counts—${stats.totalPages} and counting.` : 'Every page counts.'}`;
     }
     
-    // Use Farcaster SDK to compose cast
+    // Use Farcaster SDK to compose cast (include URL for embed preview)
     await sdk.actions.composeCast({
-      text: shareMessage
+      text: `${shareMessage}\n\n${appUrl}`
     });
     
     console.log('Shared achievement:', shareMessage);
