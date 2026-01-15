@@ -1246,7 +1246,7 @@ async function shareAchievement(stats) {
     // Determine what achievement to share
     let shareMessage = "";
     const appUrl = "https://reader-mini-app.vercel.app";
-    const shareUrl = "https://reader-mini-app.vercel.app/share";
+    const shareUrl = "https://farcaster.xyz/miniapps/53E18UNLzog1/reader";
 
     // Check for recent achievements (streaks, milestones, etc.)
     if (stats.currentStreak >= 7) {
