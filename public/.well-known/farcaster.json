@@ -1,29 +1,25 @@
 {
   "frame": {
-    "name": "READER",
+    "name": "Reader",
     "version": "1",
     "iconUrl": "https://reader-mini-app.vercel.app/icon-1024px.png",
     "homeUrl": "https://reader-mini-app.vercel.app",
-    "imageUrl": "https://reader-mini-app.vercel.app/splash.png",
-    "buttonTitle": "Open Reader",
+    "imageUrl": "https://reader-mini-app.vercel.app/hero.png",
+    "buttonTitle": "Start reading",
     "splashImageUrl": "https://reader-mini-app.vercel.app/splash-200px.png",
     "splashBackgroundColor": "#321491",
     "webhookUrl": "https://reader-mini-app.vercel.app/api/webhook",
     "subtitle": "Daily reading tracker",
     "description": "A daily reading tracker that calculates reading speed, streaks, badges, and compares you with other readers.",
     "primaryCategory": "productivity",
+    "screenshotUrls": ["https://reader-mini-app.vercel.app/Screenshot-1.png"],
+    "heroImageUrl": "https://reader-mini-app.vercel.app/hero.png",
     "tags": ["reading", "tracker", "habit", "miniapp"],
     "tagline": "Turn reading into a daily win",
     "ogTitle": "READER Track Your Reading",
     "ogDescription": "A mini app to track reading, build streaks, and read faster every day.",
     "ogImageUrl": "https://reader-mini-app.vercel.app/hero.png",
-    "castShareUrl": "https://warpcast.com/~/compose?text=📚%20Check%20out%20READER,%20a%20mini%20app%20to%20build%20a%20daily%20reading%20habit:%20https://reader-mini-app.vercel.app",
-    "screenshotUrls": [
-      "https://reader-mini-app.vercel.app/screenshot-1.png",
-      "https://reader-mini-app.vercel.app/screenshot-2.png",
-      "https://reader-mini-app.vercel.app/screenshot-3.png"
-    ],
-    "heroImageUrl": "https://reader-mini-app.vercel.app/hero.png"
+    "castShareUrl": "https://warpcast.com/~/compose?text=📚%20Check%20out%20READER,%20a%20mini%20app%20to%20build%20a%20daily%20reading%20habit:%20https://reader-mini-app.vercel.app"
   },
   "accountAssociation": {
     "header": "eyJmaWQiOjQyOTQ1MCwidHlwZSI6ImF1dGgiLCJrZXkiOiIweDk1OTk3MzZGQTU0NzI3MDQwOGFGZjhGNTNCMTZCMDYyODNEM2NDMDUifQ",

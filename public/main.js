@@ -11,20 +11,28 @@ let timerSeconds = 0;
 let timerRunning = false;
 let timerStartTime = null;
 
+/**
+ * Signal to Farcaster that the app is ready
+ * This hides the splash screen when running inside the mini app context.
+ */
+async function callSdkReady() {
+  try {
+    if (sdk?.actions?.ready) {
+      await sdk.actions.ready();
+    }
+  } catch (error) {
+    console.log('Not in Farcaster context, continuing anyway:', error);
+  }
+}
+
 // Initialize the Farcaster Mini App SDK
 async function init() {
   try {
+    // Signal readiness as early as possible
+    await callSdkReady();
+    
     // Initialize dark mode
     initDarkMode();
-    
-    // Signal that the app is ready to display
-    // This hides the splash screen
-    // Note: This will fail gracefully if not in Farcaster context
-    try {
-      await sdk.actions.ready();
-    } catch (error) {
-      console.log('Not in Farcaster context, continuing anyway:', error);
-    }
     
     // Get user information from Farcaster (optional, doesn't block app)
     identifyUser().catch(err => {

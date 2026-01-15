@@ -2,11 +2,22 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"
+    />
     <meta name="theme-color" content="#667eea" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta
+      name="fc:miniapp"
+      content='{"version":"1","imageUrl":"https://reader-mini-app.vercel.app/hero.png","button":{"title":"Open READER","action":{"type":"launch_frame","name":"READER","url":"https://reader-mini-app.vercel.app","splashImageUrl":"https://reader-mini-app.vercel.app/splash-200px.png","splashBackgroundColor":"#321491"}}}'
+    />
+    <meta
+      name="fc:frame"
+      content='{"version":"1","imageUrl":"https://reader-mini-app.vercel.app/hero.png","button":{"title":"Open READER","action":{"type":"launch_frame","name":"READER","url":"https://reader-mini-app.vercel.app","splashImageUrl":"https://reader-mini-app.vercel.app/splash-200px.png","splashBackgroundColor":"#321491"}}}'
+    />
     <title>READER - Daily Reading Tracker</title>
     <link rel="stylesheet" href="styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -17,13 +28,23 @@
         <div class="header-section">
           <div class="header-top">
             <h1 id="mainGreeting">Ready to read today? 📚</h1>
-            <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+            <button
+              class="theme-toggle"
+              id="themeToggle"
+              aria-label="Toggle dark mode"
+            >
               <span class="theme-icon">🌙</span>
             </button>
           </div>
-          <p class="welcome-subtitle" id="welcomeMessage">Every page you turn is progress</p>
+          <p class="welcome-subtitle" id="welcomeMessage">
+            Every page you turn is progress
+          </p>
           <div class="header-actions">
-            <div class="user-display" id="userDisplay" style="display: none;"></div>
+            <div
+              class="user-display"
+              id="userDisplay"
+              style="display: none"
+            ></div>
             <button class="share-button" id="shareButton">
               <span class="share-icon">📤</span>
               <span class="share-text">Celebrate</span>
@@ -93,7 +114,10 @@
                   <div class="goal-label">Today's Intention</div>
                   <div class="goal-progress">
                     <div class="goal-progress-bar">
-                      <div class="goal-progress-fill" id="goalProgressFill"></div>
+                      <div
+                        class="goal-progress-fill"
+                        id="goalProgressFill"
+                      ></div>
                     </div>
                     <div class="goal-text" id="goalText">0 / 30 min</div>
                   </div>
@@ -101,12 +125,21 @@
               </div>
               <button class="goal-edit-btn" id="goalEditBtn">Adjust</button>
             </div>
-            <div class="goal-editor" id="goalEditor" style="display: none;">
-              <input type="number" id="goalInput" min="5" max="300" value="30" class="goal-input">
+            <div class="goal-editor" id="goalEditor" style="display: none">
+              <input
+                type="number"
+                id="goalInput"
+                min="5"
+                max="300"
+                value="30"
+                class="goal-input"
+              />
               <span class="goal-input-label">minutes per day</span>
               <div class="goal-editor-actions">
                 <button class="goal-save-btn" id="goalSaveBtn">Save</button>
-                <button class="goal-cancel-btn" id="goalCancelBtn">Cancel</button>
+                <button class="goal-cancel-btn" id="goalCancelBtn">
+                  Cancel
+                </button>
               </div>
             </div>
           </div>
@@ -115,26 +148,54 @@
         <!-- Manual Session Entry Section -->
         <div class="manual-entry-section">
           <h2 class="section-title">Log Your Reading</h2>
-          <p class="section-subtitle">Every session matters, no matter how small</p>
+          <p class="section-subtitle">
+            Every session matters, no matter how small
+          </p>
           <div class="manual-entry-card">
             <form id="manualSessionForm" class="manual-session-form">
               <div class="form-group">
-                <label for="manualBookName" class="form-label">Book Name *</label>
-                <input type="text" id="manualBookName" placeholder="What story are you living today?" class="form-input" required>
+                <label for="manualBookName" class="form-label"
+                  >Book Name *</label
+                >
+                <input
+                  type="text"
+                  id="manualBookName"
+                  placeholder="What story are you living today?"
+                  class="form-input"
+                  required
+                />
               </div>
               <div class="form-row">
                 <div class="form-group">
-                  <label for="manualPages" class="form-label">Pages Read *</label>
-                  <input type="number" id="manualPages" placeholder="0" min="0" class="form-input" required>
+                  <label for="manualPages" class="form-label"
+                    >Pages Read *</label
+                  >
+                  <input
+                    type="number"
+                    id="manualPages"
+                    placeholder="0"
+                    min="0"
+                    class="form-input"
+                    required
+                  />
                 </div>
                 <div class="form-group">
-                  <label for="manualMinutes" class="form-label">Minutes *</label>
-                  <input type="number" id="manualMinutes" placeholder="0" min="1" class="form-input" required>
+                  <label for="manualMinutes" class="form-label"
+                    >Minutes *</label
+                  >
+                  <input
+                    type="number"
+                    id="manualMinutes"
+                    placeholder="0"
+                    min="1"
+                    class="form-input"
+                    required
+                  />
                 </div>
               </div>
               <div class="form-group">
                 <label for="manualDate" class="form-label">Date</label>
-                <input type="date" id="manualDate" class="form-input">
+                <input type="date" id="manualDate" class="form-input" />
               </div>
               <button type="submit" class="form-submit-btn">I Read This</button>
             </form>
@@ -144,18 +205,45 @@
         <!-- Focus Mode Section -->
         <div class="focus-section">
           <h2 class="section-title">Focus Mode</h2>
-          <p class="section-subtitle">Set aside time just for you and your book</p>
+          <p class="section-subtitle">
+            Set aside time just for you and your book
+          </p>
           <div class="focus-timer-card">
             <div class="timer-display" id="timerDisplay">00:00</div>
             <div class="timer-controls">
               <button class="timer-btn" id="timerStartBtn">Start</button>
-              <button class="timer-btn" id="timerPauseBtn" style="display: none;">Pause</button>
-              <button class="timer-btn" id="timerStopBtn" style="display: none;">Stop</button>
+              <button
+                class="timer-btn"
+                id="timerPauseBtn"
+                style="display: none"
+              >
+                Pause
+              </button>
+              <button class="timer-btn" id="timerStopBtn" style="display: none">
+                Stop
+              </button>
             </div>
-            <div class="timer-session-info" id="timerSessionInfo" style="display: none;">
-              <input type="text" id="timerBookName" placeholder="What story captured you?" class="timer-book-input">
-              <input type="number" id="timerPages" placeholder="How many pages?" min="0" class="timer-pages-input">
-              <button class="timer-save-btn" id="timerSaveBtn">Save This Moment</button>
+            <div
+              class="timer-session-info"
+              id="timerSessionInfo"
+              style="display: none"
+            >
+              <input
+                type="text"
+                id="timerBookName"
+                placeholder="What story captured you?"
+                class="timer-book-input"
+              />
+              <input
+                type="number"
+                id="timerPages"
+                placeholder="How many pages?"
+                min="0"
+                class="timer-pages-input"
+              />
+              <button class="timer-save-btn" id="timerSaveBtn">
+                Save This Moment
+              </button>
             </div>
           </div>
         </div>
@@ -170,7 +258,7 @@
         </div>
 
         <!-- Heatmap Calendar Section -->
-        <div class="heatmap-section" style="display: none;">
+        <div class="heatmap-section" style="display: none">
           <h2 class="section-title">Your Reading Journey</h2>
           <p class="section-subtitle">See how consistently you've shown up</p>
           <div class="heatmap-container" id="heatmapContainer">
@@ -179,7 +267,7 @@
         </div>
 
         <!-- Charts Section -->
-        <div class="charts-section" style="display: none;">
+        <div class="charts-section" style="display: none">
           <h2 class="section-title">Your Progress</h2>
           <div class="charts-container">
             <div class="chart-wrapper">
@@ -197,7 +285,9 @@
         <div class="leaderboard-section">
           <h2 class="section-title">Community</h2>
           <div class="leaderboard-tabs">
-            <button class="tab-button active" data-tab="streaks">Top Streaks</button>
+            <button class="tab-button active" data-tab="streaks">
+              Top Streaks
+            </button>
             <button class="tab-button" data-tab="pages">Top Pages</button>
           </div>
           <div class="leaderboard-content">
@@ -217,7 +307,9 @@
         <!-- Reading History Section -->
         <div class="history-section">
           <h2 class="section-title">Your Reading Log</h2>
-          <p class="section-subtitle">A gentle reminder of all the stories you've lived</p>
+          <p class="section-subtitle">
+            A gentle reminder of all the stories you've lived
+          </p>
           <div class="history-list" id="historyList">
             <!-- History items will be dynamically inserted here -->
           </div>
