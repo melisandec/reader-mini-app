@@ -19,10 +19,17 @@ async function init() {
     
     // Signal that the app is ready to display
     // This hides the splash screen
-    await sdk.actions.ready();
+    // Note: This will fail gracefully if not in Farcaster context
+    try {
+      await sdk.actions.ready();
+    } catch (error) {
+      console.log('Not in Farcaster context, continuing anyway:', error);
+    }
     
-    // Get user information from Farcaster
-    await identifyUser();
+    // Get user information from Farcaster (optional, doesn't block app)
+    identifyUser().catch(err => {
+      console.log('User identification optional:', err);
+    });
     
     // Set time-based greeting
     updateTimeBasedGreeting();
@@ -478,7 +485,7 @@ function displayStats() {
     // Display AI insights
     displayAIInsights(stats);
     
-    // Display heatmap
+    // Display heatmap (hide if no data)
     displayHeatmap();
     
     // Display leaderboard
@@ -667,14 +674,52 @@ function editSession(sessionId) {
 }
 
 /**
+ * Display heatmap calendar
+ */
+function displayHeatmap() {
+  try {
+    const sessions = loadSessions();
+    const heatmapSection = document.querySelector('.heatmap-section');
+    
+    // Hide section if no data (need at least 2 sessions for meaningful heatmap)
+    if (sessions.length < 2) {
+      if (heatmapSection) {
+        heatmapSection.style.display = 'none';
+      }
+      return;
+    }
+    
+    // Show section if we have data
+    if (heatmapSection) {
+      heatmapSection.style.display = 'block';
+    }
+    
+    // Render heatmap (existing heatmap rendering code would go here)
+    // For now, just show/hide the section
+  } catch (error) {
+    console.error('Error displaying heatmap:', error);
+  }
+}
+
+/**
  * Display charts for reading analytics
  */
 function displayCharts() {
   try {
     const sessions = loadSessions();
+    const chartsSection = document.querySelector('.charts-section');
     
-    if (sessions.length === 0) {
+    // Hide section if no data (need at least 2 sessions for meaningful charts)
+    if (sessions.length < 2) {
+      if (chartsSection) {
+        chartsSection.style.display = 'none';
+      }
       return;
+    }
+    
+    // Show section if we have data
+    if (chartsSection) {
+      chartsSection.style.display = 'block';
     }
     
     // Sort sessions by date (oldest first) for charts

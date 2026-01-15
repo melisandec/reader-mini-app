@@ -2,7 +2,11 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+    <meta name="theme-color" content="#667eea" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>READER - Daily Reading Tracker</title>
     <link rel="stylesheet" href="styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -166,7 +170,7 @@
         </div>
 
         <!-- Heatmap Calendar Section -->
-        <div class="heatmap-section">
+        <div class="heatmap-section" style="display: none;">
           <h2 class="section-title">Your Reading Journey</h2>
           <p class="section-subtitle">See how consistently you've shown up</p>
           <div class="heatmap-container" id="heatmapContainer">
@@ -175,7 +179,7 @@
         </div>
 
         <!-- Charts Section -->
-        <div class="charts-section">
+        <div class="charts-section" style="display: none;">
           <h2 class="section-title">Your Progress</h2>
           <div class="charts-container">
             <div class="chart-wrapper">

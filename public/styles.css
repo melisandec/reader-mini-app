@@ -40,12 +40,17 @@ body {
     Ubuntu, Cantarell, sans-serif;
   background: var(--bg-primary);
   min-height: 100vh;
+  min-height: -webkit-fill-available; /* iOS Safari fix */
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
+  padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
   transition: var(--transition);
   color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden; /* Prevent horizontal scroll */
 }
 
 #app {
