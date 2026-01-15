@@ -1272,7 +1272,8 @@ async function shareAchievement(stats) {
 
     // Use Farcaster SDK to compose cast (include URL for embed preview)
     await sdk.actions.composeCast({
-      text: `${shareMessage}\n\n${shareUrl}`,
+      text: shareMessage,
+      embeds: [shareUrl],
     });
 
     console.log("Shared achievement:", shareMessage);
