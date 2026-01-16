@@ -253,66 +253,21 @@ function startUserSyncWatcher() {
       return;
     }
 
-      // Try quickAuth first (recommended)
-      if (sdk?.quickAuth?.getToken && typeof sdk.quickAuth.getToken === "function") {
-        try {
-          const { token } = await sdk.quickAuth.getToken();
-          if (token) {
-            const payload = JSON.parse(atob(token.split(".")[1]));
-            if (payload.sub) {
-              const fid = parseInt(payload.sub, 10);
-              let username = payload.username;
-              let displayName = payload.displayName || payload.name;
-              
-              // Fetch username from Farcaster API if not in token
-              if (!username && fid) {
-                try {
-                  const farcasterResponse = await fetch(
-                    `https://api.farcaster.xyz/v2/user-by-fid?fid=${fid}`
-                  );
-                  if (farcasterResponse.ok) {
-                    const farcasterData = await farcasterResponse.json();
-                    if (farcasterData?.result?.user) {
-                      username = farcasterData.result.user.username;
-                      displayName = farcasterData.result.user.displayName || username;
-                    }
-                  }
-                } catch (apiError) {
-                  // Ignore API errors
-                }
-              }
-              
-              currentUser = {
-                fid,
-                username: username || `fid:${fid}`,
-                displayName: displayName || username || "Reader",
-              };
-              setActiveUserId(currentUser.fid);
-              syncUserDataFromServer().catch((err) => {
-                console.log("Sync failed (non-blocking):", err.message);
-              });
-              console.log("User identified via quickAuth:", currentUser);
-              updateUserDisplay();
-              clearInterval(userSyncWatcher);
-              userSyncWatcher = null;
-              return;
-            }
-          }
-        } catch (quickAuthError) {
-          // Continue to try context
-        }
-      }
-      
-      // Fallback: try context
-      if (sdk && typeof sdk.context === "function") {
-        try {
-          const context = await sdk.context();
-          if (context && context.user && context.user.fid) {
-            const fid = context.user.fid;
-            let username = context.user.username;
-            let displayName = context.user.displayName;
-            
-            // Fetch username from API if not in context
+    // Try quickAuth first (recommended)
+    if (
+      sdk?.quickAuth?.getToken &&
+      typeof sdk.quickAuth.getToken === "function"
+    ) {
+      try {
+        const { token } = await sdk.quickAuth.getToken();
+        if (token) {
+          const payload = JSON.parse(atob(token.split(".")[1]));
+          if (payload.sub) {
+            const fid = parseInt(payload.sub, 10);
+            let username = payload.username;
+            let displayName = payload.displayName || payload.name;
+
+            // Fetch username from Farcaster API if not in token
             if (!username && fid) {
               try {
                 const farcasterResponse = await fetch(
@@ -322,14 +277,15 @@ function startUserSyncWatcher() {
                   const farcasterData = await farcasterResponse.json();
                   if (farcasterData?.result?.user) {
                     username = farcasterData.result.user.username;
-                    displayName = farcasterData.result.user.displayName || username;
+                    displayName =
+                      farcasterData.result.user.displayName || username;
                   }
                 }
               } catch (apiError) {
                 // Ignore API errors
               }
             }
-            
+
             currentUser = {
               fid,
               username: username || `fid:${fid}`,
@@ -339,16 +295,65 @@ function startUserSyncWatcher() {
             syncUserDataFromServer().catch((err) => {
               console.log("Sync failed (non-blocking):", err.message);
             });
-            console.log("User identified via context:", currentUser);
+            console.log("User identified via quickAuth:", currentUser);
             updateUserDisplay();
             clearInterval(userSyncWatcher);
             userSyncWatcher = null;
             return;
           }
-        } catch (error) {
-          // Ignore errors - just try again next time
         }
+      } catch (quickAuthError) {
+        // Continue to try context
       }
+    }
+
+    // Fallback: try context
+    if (sdk && typeof sdk.context === "function") {
+      try {
+        const context = await sdk.context();
+        if (context && context.user && context.user.fid) {
+          const fid = context.user.fid;
+          let username = context.user.username;
+          let displayName = context.user.displayName;
+
+          // Fetch username from API if not in context
+          if (!username && fid) {
+            try {
+              const farcasterResponse = await fetch(
+                `https://api.farcaster.xyz/v2/user-by-fid?fid=${fid}`
+              );
+              if (farcasterResponse.ok) {
+                const farcasterData = await farcasterResponse.json();
+                if (farcasterData?.result?.user) {
+                  username = farcasterData.result.user.username;
+                  displayName =
+                    farcasterData.result.user.displayName || username;
+                }
+              }
+            } catch (apiError) {
+              // Ignore API errors
+            }
+          }
+
+          currentUser = {
+            fid,
+            username: username || `fid:${fid}`,
+            displayName: displayName || username || "Reader",
+          };
+          setActiveUserId(currentUser.fid);
+          syncUserDataFromServer().catch((err) => {
+            console.log("Sync failed (non-blocking):", err.message);
+          });
+          console.log("User identified via context:", currentUser);
+          updateUserDisplay();
+          clearInterval(userSyncWatcher);
+          userSyncWatcher = null;
+          return;
+        }
+      } catch (error) {
+        // Ignore errors - just try again next time
+      }
+    }
 
     if (Date.now() - startedAt > 4000) {
       clearInterval(userSyncWatcher);
@@ -741,31 +746,45 @@ async function identifyUser() {
           if (payload.sub) {
             const fid = parseInt(payload.sub, 10);
             // Fetch username from Farcaster API if not in token
-            let username = payload.username;
+            let username = payload.username || payload.preferred_username;
             let displayName = payload.displayName || payload.name;
-            
-            if (!username && fid) {
+
+            // Always try to fetch from API to ensure we have the latest username
+            if (fid) {
               try {
+                console.log(`Fetching username for fid=${fid} from Farcaster API...`);
                 const farcasterResponse = await fetch(
                   `https://api.farcaster.xyz/v2/user-by-fid?fid=${fid}`
                 );
                 if (farcasterResponse.ok) {
                   const farcasterData = await farcasterResponse.json();
+                  console.log("Farcaster API response:", farcasterData);
                   if (farcasterData?.result?.user) {
-                    username = farcasterData.result.user.username;
-                    displayName = farcasterData.result.user.displayName || username;
+                    username = farcasterData.result.user.username || username;
+                    displayName = farcasterData.result.user.displayName || displayName || username;
+                    console.log(`Fetched username: ${username}, displayName: ${displayName}`);
                   }
+                } else {
+                  console.log(`API response not OK: ${farcasterResponse.status}`);
                 }
               } catch (apiError) {
-                console.log("Could not fetch username from API:", apiError.message);
+                console.error(
+                  "Could not fetch username from API:",
+                  apiError.message
+                );
               }
             }
+
+            // Only use fid fallback if we truly don't have a username
+            const finalUsername = username && username !== `fid:${fid}` ? username : null;
             
             userInfo = {
               fid,
-              username: username || `fid:${fid}`,
-              displayName: displayName || username || "Reader",
+              username: finalUsername || `fid:${fid}`,
+              displayName: displayName || finalUsername || "Reader",
             };
+            
+            console.log("Final userInfo:", userInfo);
           }
         }
       } catch (e) {
@@ -1996,32 +2015,44 @@ async function showCreateChallengeModal() {
             if (payload.sub) {
               const fid = parseInt(payload.sub, 10);
               // Fetch username from Farcaster API if not in token
-              let username = payload.username;
+              let username = payload.username || payload.preferred_username;
               let displayName = payload.displayName || payload.name;
-              
-              if (!username && fid) {
+
+              // Always try to fetch from API to ensure we have the latest username
+              if (fid) {
                 try {
+                  console.log(`Fetching username for fid=${fid} from Farcaster API...`);
                   const farcasterResponse = await fetch(
                     `https://api.farcaster.xyz/v2/user-by-fid?fid=${fid}`
                   );
                   if (farcasterResponse.ok) {
                     const farcasterData = await farcasterResponse.json();
+                    console.log("Farcaster API response:", farcasterData);
                     if (farcasterData?.result?.user) {
-                      username = farcasterData.result.user.username;
-                      displayName = farcasterData.result.user.displayName || username;
+                      username = farcasterData.result.user.username || username;
+                      displayName =
+                        farcasterData.result.user.displayName || displayName || username;
+                      console.log(`Fetched username: ${username}, displayName: ${displayName}`);
                     }
                   }
                 } catch (apiError) {
-                  console.log("Could not fetch username from API:", apiError.message);
+                  console.error(
+                    "Could not fetch username from API:",
+                    apiError.message
+                  );
                 }
               }
-              
+
+              // Only use fid fallback if we truly don't have a username
+              const finalUsername = username && username !== `fid:${fid}` ? username : null;
+
               currentUser = {
                 fid,
-                username: username || `fid:${fid}`,
-                displayName: displayName || username || "Reader",
+                username: finalUsername || `fid:${fid}`,
+                displayName: displayName || finalUsername || "Reader",
               };
               setActiveUserId(currentUser.fid);
+              console.log("Current user set:", currentUser);
               updateUserDisplay();
               console.log("User identified via quickAuth:", currentUser);
             }
