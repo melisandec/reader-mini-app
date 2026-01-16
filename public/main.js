@@ -3286,7 +3286,7 @@ if (typeof window !== "undefined") {
   window.addEventListener("error", (e) => {
     console.error("GLOBAL ERROR CAUGHT:", e.message, e.filename, e.lineno);
   });
-  
+
   // Try to log immediately - even before imports resolve
   try {
     console.log("=== MAIN.JS SCRIPT TAG EXECUTING ===");

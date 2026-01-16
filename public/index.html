@@ -365,16 +365,34 @@
 
     <!-- Debug: Log immediately to verify script loading -->
     <script>
-      console.log("=== INLINE SCRIPT EXECUTING ===");
-      console.log("Document ready:", document.readyState);
-      console.log("Location:", window.location.href);
-      
-      // Monitor for script load
-      window.addEventListener("error", function(e) {
-        console.error("SCRIPT ERROR:", e.message, e.filename, e.lineno);
-      });
+      (function() {
+        console.log("=== INLINE SCRIPT EXECUTING ===");
+        console.log("Document ready:", document.readyState);
+        console.log("Location:", window.location.href);
+        console.log("User agent:", navigator.userAgent);
+        
+        // Monitor for script load errors
+        window.addEventListener("error", function(e) {
+          console.error("SCRIPT ERROR:", e.message, e.filename, e.lineno, e.error);
+        }, true);
+        
+        // Monitor for unhandled promise rejections
+        window.addEventListener("unhandledrejection", function(e) {
+          console.error("UNHANDLED PROMISE REJECTION:", e.reason);
+        });
+        
+        // Try to load main.js and log if it fails
+        const script = document.createElement("script");
+        script.type = "module";
+        script.src = "main.js";
+        script.onerror = function(e) {
+          console.error("FAILED TO LOAD main.js:", e);
+        };
+        script.onload = function() {
+          console.log("main.js loaded successfully");
+        };
+        document.body.appendChild(script);
+      })();
     </script>
-    
-    <script type="module" src="main.js"></script>
   </body>
 </html>
