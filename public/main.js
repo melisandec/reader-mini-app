@@ -293,19 +293,31 @@ function startUserSyncWatcher() {
                 const farcasterResponse = await fetch(
                   `https://api.farcaster.xyz/v2/user-by-fid?fid=${fid}`
                 );
+                console.log(`API response status: ${farcasterResponse.status}`);
                 if (farcasterResponse.ok) {
                   const farcasterData = await farcasterResponse.json();
-                  console.log("Farcaster API response:", farcasterData);
+                  console.log("Farcaster API response:", JSON.stringify(farcasterData, null, 2));
                   if (farcasterData?.result?.user) {
-                    username = farcasterData.result.user.username || username;
-                    displayName =
-                      farcasterData.result.user.displayName ||
-                      displayName ||
-                      username;
+                    const apiUsername = farcasterData.result.user.username;
+                    const apiDisplayName = farcasterData.result.user.displayName;
+                    console.log(`API returned username: "${apiUsername}", displayName: "${apiDisplayName}"`);
+                    if (apiUsername) {
+                      username = apiUsername;
+                    }
+                    if (apiDisplayName) {
+                      displayName = apiDisplayName;
+                    } else if (apiUsername) {
+                      displayName = apiUsername;
+                    }
                     console.log(
-                      `Fetched username: ${username}, displayName: ${displayName}`
+                      `After API fetch - username: "${username}", displayName: "${displayName}"`
                     );
+                  } else {
+                    console.log("API response missing user data:", farcasterData);
                   }
+                } else {
+                  const errorText = await farcasterResponse.text();
+                  console.error(`API error (${farcasterResponse.status}):`, errorText);
                 }
               } catch (apiError) {
                 console.error(
@@ -797,23 +809,31 @@ async function identifyUser() {
                 const farcasterResponse = await fetch(
                   `https://api.farcaster.xyz/v2/user-by-fid?fid=${fid}`
                 );
+                console.log(`API response status: ${farcasterResponse.status}`);
                 if (farcasterResponse.ok) {
                   const farcasterData = await farcasterResponse.json();
-                  console.log("Farcaster API response:", farcasterData);
+                  console.log("Farcaster API response:", JSON.stringify(farcasterData, null, 2));
                   if (farcasterData?.result?.user) {
-                    username = farcasterData.result.user.username || username;
-                    displayName =
-                      farcasterData.result.user.displayName ||
-                      displayName ||
-                      username;
+                    const apiUsername = farcasterData.result.user.username;
+                    const apiDisplayName = farcasterData.result.user.displayName;
+                    console.log(`API returned username: "${apiUsername}", displayName: "${apiDisplayName}"`);
+                    if (apiUsername) {
+                      username = apiUsername;
+                    }
+                    if (apiDisplayName) {
+                      displayName = apiDisplayName;
+                    } else if (apiUsername) {
+                      displayName = apiUsername;
+                    }
                     console.log(
-                      `Fetched username: ${username}, displayName: ${displayName}`
+                      `After API fetch - username: "${username}", displayName: "${displayName}"`
                     );
+                  } else {
+                    console.log("API response missing user data:", farcasterData);
                   }
                 } else {
-                  console.log(
-                    `API response not OK: ${farcasterResponse.status}`
-                  );
+                  const errorText = await farcasterResponse.text();
+                  console.error(`API error (${farcasterResponse.status}):`, errorText);
                 }
               } catch (apiError) {
                 console.error(
@@ -2098,15 +2118,21 @@ async function showCreateChallengeModal() {
                 }
               }
 
-              // Only use fid fallback if we truly don't have a username
-              const finalUsername =
-                username && username !== `fid:${fid}` ? username : null;
+            // Only use fid fallback if we truly don't have a username
+            // Make sure username is a valid string, not empty
+            const finalUsername = username && 
+                                  typeof username === "string" && 
+                                  username.trim() !== "" && 
+                                  username !== `fid:${fid}` 
+                                  ? username.trim() 
+                                  : null;
 
-              currentUser = {
-                fid,
-                username: finalUsername || `fid:${fid}`,
-                displayName: displayName || finalUsername || "Reader",
-              };
+            currentUser = {
+              fid,
+              username: finalUsername || `fid:${fid}`,
+              displayName: (displayName && displayName.trim()) || finalUsername || "Reader",
+            };
+            console.log("Current user set:", JSON.stringify(currentUser, null, 2));
               setActiveUserId(currentUser.fid);
               console.log("Current user set:", currentUser);
               updateUserDisplay();
