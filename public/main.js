@@ -275,12 +275,13 @@ function startUserSyncWatcher() {
     }
 
     // Try quickAuth first (recommended)
-    if (
-      sdk?.quickAuth?.getToken &&
-      typeof sdk.quickAuth.getToken === "function"
-    ) {
+    // Wait a bit for SDK to be fully ready
+    if (sdk && sdk.quickAuth && typeof sdk.quickAuth.getToken === "function") {
       try {
+        // Add a small delay to ensure SDK is fully initialized
+        await new Promise(resolve => setTimeout(resolve, 200));
         const { token } = await sdk.quickAuth.getToken();
+        console.log("quickAuth.getToken() called in userSyncWatcher, token received:", token ? "yes" : "no");
         if (token) {
           const payload = JSON.parse(atob(token.split(".")[1]));
           if (payload.sub) {
