@@ -689,56 +689,12 @@ async function identifyUser() {
       return;
     }
 
-    // Try signIn if no context and signIn hasn't been attempted
-    // Note: it's signIn (capital I), not signin
     // IMPORTANT: Don't auto-trigger signIn during initialization - only on user action
-    // The SDK's signIn dialog can crash if called too early
+    // The SDK's signIn dialog can crash if called too early (acceptAuthAddress error)
     // We'll only call signIn when user explicitly clicks a button that needs auth
-    if (false) { // Disabled auto signIn to prevent SDK crashes
-      // This code is kept for reference but disabled
-      if (
-        !signinAttempted &&
-        sdk?.actions?.signIn &&
-        typeof sdk.actions.signIn === "function"
-      ) {
-        signinAttempted = true;
-        try {
-          await sdk.actions.signIn();
-
-        // After signIn, get context again
-        if (typeof sdk.context === "function") {
-          try {
-            context = await sdk.context();
-          } catch (e) {
-            console.log("Context not available after signIn:", e.message);
-            return;
-          }
-        }
-
-        if (context && context.user && context.user.fid) {
-          currentUser = {
-            fid: context.user.fid,
-            username: context.user.username || `fid:${context.user.fid}`,
-            displayName:
-              context.user.displayName || context.user.username || "Reader",
-          };
-          setActiveUserId(currentUser.fid);
-
-          // Sync in background - don't block on errors
-          syncUserDataFromServer().catch((err) => {
-            console.log("Sync failed (non-blocking):", err.message);
-          });
-
-          console.log("User identified after signIn:", currentUser);
-          updateUserDisplay();
-        }
-      } catch (signinError) {
-        // SignIn failed or cancelled - don't retry
-        // This is normal if user cancels - don't log as error
-        return;
-      }
-    } else if (!signinAttempted) {
-      // SDK doesn't have signIn - we're probably not in Farcaster context
+    // Auto signIn is disabled to prevent SDK crashes
+    if (!signinAttempted) {
+      // SDK doesn't have signIn or we're not in Farcaster context
       // This is normal - don't log
       signinAttempted = true; // Prevent retries
     }
@@ -1877,15 +1833,51 @@ function setupCreateChallengeButton() {
  * Show create challenge modal
  */
 async function showCreateChallengeModal() {
-  // If user not identified yet, try to identify first
+  // If user not identified yet, try to identify first (without triggering signIn)
   if (!currentUser?.fid && !currentUser?.username) {
-    console.log("User not identified, attempting to identify...");
+    console.log("User not identified, attempting to get context...");
     try {
-      await identifyUser();
-      // Wait a moment for user to be set
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Try to get context without triggering signIn
+      if (sdk && typeof sdk.context === "function") {
+        const context = await sdk.context();
+        if (context && context.user && context.user.fid) {
+          currentUser = {
+            fid: context.user.fid,
+            username: context.user.username || `fid:${context.user.fid}`,
+            displayName:
+              context.user.displayName || context.user.username || "Reader",
+          };
+          setActiveUserId(currentUser.fid);
+          updateUserDisplay();
+        }
+      }
     } catch (error) {
-      console.error("Error identifying user:", error);
+      console.log("Error getting context:", error.message);
+    }
+  }
+
+  // If still not identified, try signIn only when user explicitly needs it
+  if (!currentUser?.fid && !currentUser?.username) {
+    try {
+      if (sdk?.actions?.signIn && typeof sdk.actions.signIn === "function") {
+        await sdk.actions.signIn();
+        // After signIn, get context again
+        if (sdk && typeof sdk.context === "function") {
+          const context = await sdk.context();
+          if (context && context.user && context.user.fid) {
+            currentUser = {
+              fid: context.user.fid,
+              username: context.user.username || `fid:${context.user.fid}`,
+              displayName:
+                context.user.displayName || context.user.username || "Reader",
+            };
+            setActiveUserId(currentUser.fid);
+            updateUserDisplay();
+          }
+        }
+      }
+    } catch (error) {
+      console.log("SignIn cancelled or failed:", error.message);
     }
   }
 
@@ -1895,7 +1887,6 @@ async function showCreateChallengeModal() {
       "Unable to identify user. Please try refreshing the app.",
       4000
     );
-    console.log("Current user state:", currentUser);
     return;
   }
 
