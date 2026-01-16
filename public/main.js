@@ -52,7 +52,10 @@ async function init() {
     initDarkMode();
 
     // Get user information from Farcaster (optional, doesn't block app)
-    await identifyUser();
+    // Don't await - let it run in background to avoid blocking initialization
+    identifyUser().catch((err) => {
+      console.log("User identification failed (non-blocking):", err.message);
+    });
     startUserSyncWatcher();
 
     // Set time-based greeting
@@ -615,16 +618,26 @@ async function identifyUser() {
   }
 
   try {
+    // Check if SDK is available
+    if (!sdk) {
+      console.log("SDK not available");
+      return;
+    }
+
     // sdk.context is a function - call it to get context
     let context = null;
-    
-    if (sdk && typeof sdk.context === "function") {
+
+    if (typeof sdk.context === "function") {
       try {
         context = await sdk.context();
       } catch (e) {
         // Context might not be available if not in Farcaster context
-        console.log("Context not available:", e.message);
+        // This is normal - don't log as error
+        return;
       }
+    } else {
+      // SDK context not available
+      return;
     }
 
     // If we got context with user, use it
@@ -636,7 +649,12 @@ async function identifyUser() {
           context.user.displayName || context.user.username || "Reader",
       };
       setActiveUserId(currentUser.fid);
-      await syncUserDataFromServer();
+      
+      // Sync in background - don't block on errors
+      syncUserDataFromServer().catch((err) => {
+        console.log("Sync failed (non-blocking):", err.message);
+      });
+      
       console.log("User identified:", currentUser);
       updateUserDisplay();
       return;
@@ -654,11 +672,12 @@ async function identifyUser() {
         await sdk.actions.signIn();
 
         // After signIn, get context again
-        if (sdk && typeof sdk.context === "function") {
+        if (typeof sdk.context === "function") {
           try {
             context = await sdk.context();
           } catch (e) {
             console.log("Context not available after signIn:", e.message);
+            return;
           }
         }
 
@@ -670,21 +689,28 @@ async function identifyUser() {
               context.user.displayName || context.user.username || "Reader",
           };
           setActiveUserId(currentUser.fid);
-          await syncUserDataFromServer();
+          
+          // Sync in background - don't block on errors
+          syncUserDataFromServer().catch((err) => {
+            console.log("Sync failed (non-blocking):", err.message);
+          });
+          
           console.log("User identified after signIn:", currentUser);
           updateUserDisplay();
         }
       } catch (signinError) {
         // SignIn failed or cancelled - don't retry
-        console.log("SignIn not available or cancelled:", signinError.message);
+        // This is normal if user cancels - don't log as error
+        return;
       }
     } else if (!signinAttempted) {
       // SDK doesn't have signIn - we're probably not in Farcaster context
-      console.log("Not in Farcaster context - sync disabled");
+      // This is normal - don't log
       signinAttempted = true; // Prevent retries
     }
   } catch (error) {
-    console.error("Error identifying user:", error.message);
+    // Don't let user identification errors break the app
+    console.log("User identification error (non-blocking):", error.message);
   }
 }
 
