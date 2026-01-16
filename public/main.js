@@ -3282,16 +3282,18 @@ function showNotification(message) {
 }
 
 // Add immediate logging when script loads - use window.onerror to catch any errors
-window.addEventListener("error", (e) => {
-  console.error("GLOBAL ERROR CAUGHT:", e.message, e.filename, e.lineno);
-});
-
-// Try to log immediately - even before imports resolve
-try {
-  console.log("=== MAIN.JS SCRIPT TAG EXECUTING ===");
-  console.log("Timestamp:", new Date().toISOString());
-} catch (e) {
-  console.error("Error in immediate log:", e);
+if (typeof window !== "undefined") {
+  window.addEventListener("error", (e) => {
+    console.error("GLOBAL ERROR CAUGHT:", e.message, e.filename, e.lineno);
+  });
+  
+  // Try to log immediately - even before imports resolve
+  try {
+    console.log("=== MAIN.JS SCRIPT TAG EXECUTING ===");
+    console.log("Timestamp:", new Date().toISOString());
+  } catch (e) {
+    console.error("Error in immediate log:", e);
+  }
 }
 
 // Add immediate logging when script loads
