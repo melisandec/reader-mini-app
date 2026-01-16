@@ -22,21 +22,43 @@ import {
   createChallengeProgress,
 } from "./models.js";
 
-// CRITICAL: Initialize SDK and call ready() immediately
+// CRITICAL: Wait for SDK to be injected by Farcaster client, then call ready()
+// On desktop, the SDK might be injected later, so we need to poll for it
 (async function () {
-  try {
-    // Initialize SDK first if init() exists
-    if (sdk && typeof sdk.init === "function") {
-      await sdk.init();
+  let attempts = 0;
+  const maxAttempts = 100; // 10 seconds max (100ms intervals)
+  
+  const waitForSdk = setInterval(async () => {
+    attempts++;
+    
+    // Check if SDK is available and has the ready function
+    const sdkAvailable = 
+      sdk && 
+      sdk.actions && 
+      typeof sdk.actions.ready === "function";
+    
+    if (sdkAvailable) {
+      clearInterval(waitForSdk);
+      try {
+        console.log("=== SDK FOUND: Calling init() and ready() ===");
+        // Initialize SDK first if init() exists
+        if (typeof sdk.init === "function") {
+          await sdk.init();
+          console.log("=== SDK init() completed ===");
+        }
+        
+        // Call ready() to hide splash screen
+        await sdk.actions.ready();
+        console.log("=== SDK ready() completed - splash screen should hide ===");
+      } catch (e) {
+        console.error("=== SDK ready() error (will retry in init()):", e.message);
+        // Silent fail - will retry in init()
+      }
+    } else if (attempts >= maxAttempts) {
+      clearInterval(waitForSdk);
+      console.warn("=== SDK not found after", maxAttempts, "attempts - will retry in init() ===");
     }
-
-    // Call ready() immediately
-    if (sdk?.actions?.ready) {
-      await sdk.actions.ready();
-    }
-  } catch (e) {
-    // Silent fail - will retry in init()
-  }
+  }, 100);
 })();
 
 // Global user state
@@ -53,13 +75,30 @@ let timerStartTime = null;
  * This hides the splash screen when running inside the mini app context.
  */
 async function callSdkReady() {
-  if (!sdk) return;
-  try {
-    if (typeof sdk.init === "function") await sdk.init();
-    if (sdk.actions?.ready) await sdk.actions.ready();
-  } catch (e) {
-    // Silent - already tried at top level
+  // Wait for SDK to be available (with timeout)
+  let attempts = 0;
+  const maxAttempts = 50; // 5 seconds
+  
+  while (attempts < maxAttempts) {
+    if (sdk && sdk.actions && typeof sdk.actions.ready === "function") {
+      try {
+        console.log("=== callSdkReady: SDK available, calling init() and ready() ===");
+        if (typeof sdk.init === "function") {
+          await sdk.init();
+        }
+        await sdk.actions.ready();
+        console.log("=== callSdkReady: SUCCESS ===");
+        return;
+      } catch (e) {
+        console.error("=== callSdkReady: Error calling ready():", e.message);
+        return; // Don't retry if it errors
+      }
+    }
+    attempts++;
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
+  
+  console.warn("=== callSdkReady: SDK not available after", maxAttempts, "attempts ===");
 }
 
 // Initialize the Farcaster Mini App SDK
