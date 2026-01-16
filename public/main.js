@@ -216,11 +216,25 @@ function scheduleSyncToServer() {
 function startUserSyncWatcher() {
   if (userSyncWatcher) return;
   const startedAt = Date.now();
+  let attempts = 0;
+  const maxAttempts = 10; // Stop after 10 attempts (8 seconds)
 
   userSyncWatcher = setInterval(async () => {
+    attempts++;
+
     if (currentUser?.fid) {
       clearInterval(userSyncWatcher);
       userSyncWatcher = null;
+      return;
+    }
+
+    // Stop if we've tried too many times or signin was attempted
+    if (attempts > maxAttempts || signinAttempted) {
+      clearInterval(userSyncWatcher);
+      userSyncWatcher = null;
+      if (!currentUser?.fid) {
+        console.log("User identification stopped - not in Farcaster context");
+      }
       return;
     }
 
@@ -589,27 +603,27 @@ function updateThemeIcon(theme) {
   }
 }
 
+let signinAttempted = false;
+
 /**
  * Identify user via Farcaster
  */
 async function identifyUser() {
+  // Don't retry if we already have a user
+  if (currentUser?.fid) {
+    return;
+  }
+
   try {
-    // Try to access context safely - don't call it as a function
+    // sdk.context is a function - call it to get context
     let context = null;
     
-    // Check if context exists and try different access patterns
-    if (sdk && 'context' in sdk) {
+    if (sdk && typeof sdk.context === "function") {
       try {
-        // Try as a property first
-        if (sdk.context && typeof sdk.context !== 'function') {
-          if (sdk.context instanceof Promise) {
-            context = await sdk.context;
-          } else if (sdk.context && typeof sdk.context === 'object') {
-            context = sdk.context;
-          }
-        }
+        context = await sdk.context();
       } catch (e) {
-        console.log("Context access pattern 1 failed:", e.message);
+        // Context might not be available if not in Farcaster context
+        console.log("Context not available:", e.message);
       }
     }
 
@@ -628,36 +642,46 @@ async function identifyUser() {
       return;
     }
 
-    // Try signin if no context
-    try {
-      console.log("Attempting signin...");
-      await sdk.actions.signin();
-      
-      // After signin, try accessing context again
-      if (sdk.context) {
-        if (sdk.context instanceof Promise) {
-          context = await sdk.context;
-        } else if (typeof sdk.context === 'object') {
-          context = sdk.context;
-        }
-      }
+    // Try signIn if no context and signIn hasn't been attempted
+    // Note: it's signIn (capital I), not signin
+    if (
+      !signinAttempted &&
+      sdk?.actions?.signIn &&
+      typeof sdk.actions.signIn === "function"
+    ) {
+      signinAttempted = true;
+      try {
+        await sdk.actions.signIn();
 
-      if (context && context.user && context.user.fid) {
-        currentUser = {
-          fid: context.user.fid,
-          username: context.user.username || `fid:${context.user.fid}`,
-          displayName:
-            context.user.displayName ||
-            context.user.username ||
-            "Reader",
-        };
-        setActiveUserId(currentUser.fid);
-        await syncUserDataFromServer();
-        console.log("User identified after signin:", currentUser);
-        updateUserDisplay();
+        // After signIn, get context again
+        if (sdk && typeof sdk.context === "function") {
+          try {
+            context = await sdk.context();
+          } catch (e) {
+            console.log("Context not available after signIn:", e.message);
+          }
+        }
+
+        if (context && context.user && context.user.fid) {
+          currentUser = {
+            fid: context.user.fid,
+            username: context.user.username || `fid:${context.user.fid}`,
+            displayName:
+              context.user.displayName || context.user.username || "Reader",
+          };
+          setActiveUserId(currentUser.fid);
+          await syncUserDataFromServer();
+          console.log("User identified after signIn:", currentUser);
+          updateUserDisplay();
+        }
+      } catch (signinError) {
+        // SignIn failed or cancelled - don't retry
+        console.log("SignIn not available or cancelled:", signinError.message);
       }
-    } catch (signinError) {
-      console.log("User signin cancelled or not available:", signinError.message);
+    } else if (!signinAttempted) {
+      // SDK doesn't have signIn - we're probably not in Farcaster context
+      console.log("Not in Farcaster context - sync disabled");
+      signinAttempted = true; // Prevent retries
     }
   } catch (error) {
     console.error("Error identifying user:", error.message);
