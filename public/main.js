@@ -37,12 +37,28 @@ let timerStartTime = null;
  */
 async function callSdkReady() {
   try {
-    if (sdk?.actions?.ready) {
-      await sdk.actions.ready();
-      console.log("SDK ready called successfully");
+    // Check if SDK exists and has actions
+    if (!sdk) {
+      console.log("SDK not available");
+      return;
+    }
+    
+    // Check if ready function exists and is callable
+    if (sdk.actions && typeof sdk.actions.ready === "function") {
+      try {
+        await sdk.actions.ready();
+        console.log("SDK ready called successfully");
+      } catch (readyError) {
+        // Some platforms (like desktop) might not support ready()
+        // This is okay - the app should still work
+        console.log("SDK ready() not supported on this platform:", readyError.message);
+      }
+    } else {
+      console.log("SDK actions.ready not available");
     }
   } catch (error) {
-    console.log("Not in Farcaster context, continuing anyway:", error);
+    // Don't let SDK errors break the app
+    console.log("SDK initialization error (non-blocking):", error.message);
   }
 }
 
@@ -300,16 +316,21 @@ function startUserSyncWatcher() {
             }
 
             // Only use fid fallback if we truly don't have a username
-            const finalUsername =
-              username && username !== `fid:${fid}` ? username : null;
+            // Make sure username is a valid string, not empty
+            const finalUsername = username && 
+                                  typeof username === "string" && 
+                                  username.trim() !== "" && 
+                                  username !== `fid:${fid}` 
+                                  ? username.trim() 
+                                  : null;
 
             currentUser = {
               fid,
               username: finalUsername || `fid:${fid}`,
-              displayName: displayName || finalUsername || "Reader",
+              displayName: (displayName && displayName.trim()) || finalUsername || "Reader",
             };
             setActiveUserId(currentUser.fid);
-            console.log("Current user set:", currentUser);
+            console.log("Current user set:", JSON.stringify(currentUser, null, 2));
             syncUserDataFromServer().catch((err) => {
               console.log("Sync failed (non-blocking):", err.message);
             });
