@@ -53,61 +53,12 @@ let timerStartTime = null;
  * This hides the splash screen when running inside the mini app context.
  */
 async function callSdkReady() {
+  if (!sdk) return;
   try {
-    // Check if SDK exists and has actions
-    if (!sdk) {
-      console.log("SDK not available in callSdkReady()");
-      // Try window.sdk as fallback (might be injected by Farcaster)
-      if (typeof window !== "undefined" && window.sdk) {
-        console.log("Found SDK in window.sdk, using that");
-        const windowSdk = window.sdk;
-        if (
-          windowSdk.actions &&
-          typeof windowSdk.actions.ready === "function"
-        ) {
-          try {
-            await windowSdk.actions.ready();
-            console.log("SDK ready called successfully via window.sdk");
-            return;
-          } catch (e) {
-            console.error("Failed to call ready via window.sdk:", e);
-          }
-        }
-      }
-      return;
-    }
-
-    // Check if ready function exists and is callable
-    if (sdk.actions && typeof sdk.actions.ready === "function") {
-      try {
-        await sdk.actions.ready();
-        console.log("SDK ready called successfully");
-      } catch (readyError) {
-        // Some platforms (like desktop) might not support ready()
-        // But we should still try - log the error but don't fail silently
-        console.error(
-          "SDK ready() error:",
-          readyError.message,
-          readyError.stack
-        );
-        // Re-throw so caller knows it failed
-        throw readyError;
-      }
-    } else {
-      console.error("SDK actions.ready not available - SDK structure:", {
-        hasSdk: !!sdk,
-        hasActions: !!(sdk && sdk.actions),
-        hasReady: !!(
-          sdk &&
-          sdk.actions &&
-          typeof sdk.actions.ready === "function"
-        ),
-      });
-    }
-  } catch (error) {
-    // Log the error but don't break the app
-    console.error("SDK initialization error:", error.message, error.stack);
-    throw error; // Re-throw so caller can handle it
+    if (typeof sdk.init === "function") await sdk.init();
+    if (sdk.actions?.ready) await sdk.actions.ready();
+  } catch (e) {
+    // Silent - already tried at top level
   }
 }
 
