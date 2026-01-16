@@ -955,13 +955,16 @@ async function identifyUser() {
     // If we got user info, use it
     if (user && user.fid) {
       // Only set username if it's a real username, never use fid: as fallback
-      const realUsername = 
-        (user.username && !user.username.startsWith("fid:")) ||
-        (userInfo?.username && !userInfo.username.startsWith("fid:"));
+      let realUsername = null;
+      if (user.username && !user.username.startsWith("fid:")) {
+        realUsername = user.username;
+      } else if (userInfo?.username && !userInfo.username.startsWith("fid:")) {
+        realUsername = userInfo.username;
+      }
       
       currentUser = {
         fid: user.fid || userInfo?.fid,
-        username: realUsername ? (user.username || userInfo?.username) : null,
+        username: realUsername, // Only set if we have a real username, never fid:
         displayName:
           user.displayName ||
           userInfo?.displayName ||
