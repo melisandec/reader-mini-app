@@ -66,8 +66,16 @@ export default async function handler(req, res) {
           sessions: Array.isArray(body.sessions) ? body.sessions : [],
           stats: body.stats || null,
           // Get username from top level first, then fallback to stats
-          username: body.username || body.stats?.username || body.stats?.displayName || null,
-          displayName: body.displayName || body.stats?.displayName || body.stats?.username || null,
+          username:
+            body.username ||
+            body.stats?.username ||
+            body.stats?.displayName ||
+            null,
+          displayName:
+            body.displayName ||
+            body.stats?.displayName ||
+            body.stats?.username ||
+            null,
           updatedAt: Date.now(),
         };
 

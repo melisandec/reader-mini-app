@@ -374,7 +374,7 @@ function startUserSyncWatcher() {
 
             currentUser = {
               fid,
-              username: finalUsername || `fid:${fid}`,
+              username: finalUsername || null, // Never set to fid: - leave null until we have real username
               displayName:
                 (displayName && displayName.trim()) ||
                 finalUsername ||
@@ -430,7 +430,7 @@ function startUserSyncWatcher() {
 
           currentUser = {
             fid,
-            username: username || `fid:${fid}`,
+            username: (username && !username.startsWith("fid:")) ? username : null, // Never set to fid:
             displayName: displayName || username || "Reader",
           };
           setActiveUserId(currentUser.fid);
@@ -921,7 +921,7 @@ async function identifyUser() {
 
             userInfo = {
               fid,
-              username: finalUsername || `fid:${fid}`,
+              username: finalUsername || null, // Never set to fid: - leave null until we have real username
               displayName: displayName || finalUsername || "Reader",
             };
 
@@ -954,12 +954,14 @@ async function identifyUser() {
 
     // If we got user info, use it
     if (user && user.fid) {
+      // Only set username if it's a real username, never use fid: as fallback
+      const realUsername = 
+        (user.username && !user.username.startsWith("fid:")) ||
+        (userInfo?.username && !userInfo.username.startsWith("fid:"));
+      
       currentUser = {
         fid: user.fid || userInfo?.fid,
-        username:
-          user.username ||
-          userInfo?.username ||
-          `fid:${user.fid || userInfo?.fid}`,
+        username: realUsername ? (user.username || userInfo?.username) : null,
         displayName:
           user.displayName ||
           userInfo?.displayName ||
@@ -1014,16 +1016,16 @@ async function updateUserDisplay() {
     const response = await fetch(`/api/user-data?fid=${currentUser.fid}`);
     if (response.ok) {
       const data = await response.json();
-      
+
       // Get username from database (same logic as leaderboard)
-      let username = 
+      let username =
         data?.username ||
         data?.displayName ||
         data?.stats?.username ||
         data?.stats?.displayName;
 
       // If still no username or it's a fid, try Farcaster API
-      if (!username || username.startsWith('fid:')) {
+      if (!username || username.startsWith("fid:")) {
         try {
           const farcasterResponse = await fetch(
             `https://api.farcaster.xyz/v2/user-by-fid?fid=${currentUser.fid}`
@@ -1041,32 +1043,65 @@ async function updateUserDisplay() {
         }
       }
 
-      // Final fallback
-      if (!username || username.startsWith('fid:')) {
-        username = currentUser.username || currentUser.displayName || `fid:${currentUser.fid}`;
+      // Final fallback - but NEVER use fid: as fallback
+      if (!username || username.startsWith("fid:")) {
+        // Only use currentUser.username if it's a real username (not fid:)
+        if (currentUser.username && !currentUser.username.startsWith("fid:")) {
+          username = currentUser.username;
+        } else if (currentUser.displayName && !currentUser.displayName.startsWith("fid:")) {
+          username = currentUser.displayName;
+        }
+        // If we still don't have a username, leave it null - don't use fid:
       }
 
       // Update currentUser with fetched username
-      if (username && !username.startsWith('fid:')) {
+      if (username && !username.startsWith("fid:")) {
         currentUser.username = username;
       }
 
       // Display username
-      const displayText = username.replace(/^@/, '');
+      const displayText = username.replace(/^@/, "");
       userDisplay.textContent = `@${displayText}`;
       userDisplay.style.display = "block";
-    } else {
-      // Fallback to current user data
-      const displayText = currentUser.username || currentUser.displayName || `fid:${currentUser.fid}`;
-      userDisplay.textContent = displayText.startsWith("@") ? displayText : `@${displayText.replace("@", "")}`;
-      userDisplay.style.display = "block";
+      } else {
+        // Fallback to current user data - but never use fid:
+        const displayText = 
+          (currentUser.username && !currentUser.username.startsWith("fid:")) 
+            ? currentUser.username 
+            : (currentUser.displayName && !currentUser.displayName.startsWith("fid:"))
+            ? currentUser.displayName
+            : null;
+        
+        if (displayText) {
+          userDisplay.textContent = displayText.startsWith("@")
+            ? displayText
+            : `@${displayText.replace("@", "")}`;
+          userDisplay.style.display = "block";
+        } else {
+          // No username available yet - hide or show "Loading..."
+          userDisplay.textContent = "Loading...";
+          userDisplay.style.display = "block";
+        }
+      }
+    } catch (error) {
+      // Fallback to current user data on error - but never use fid:
+      const displayText = 
+        (currentUser.username && !currentUser.username.startsWith("fid:")) 
+          ? currentUser.username 
+          : (currentUser.displayName && !currentUser.displayName.startsWith("fid:"))
+          ? currentUser.displayName
+          : null;
+      
+      if (displayText) {
+        userDisplay.textContent = displayText.startsWith("@")
+          ? displayText
+          : `@${displayText.replace("@", "")}`;
+        userDisplay.style.display = "block";
+      } else {
+        userDisplay.textContent = "Loading...";
+        userDisplay.style.display = "block";
+      }
     }
-  } catch (error) {
-    // Fallback to current user data on error
-    const displayText = currentUser.username || currentUser.displayName || `fid:${currentUser.fid}`;
-    userDisplay.textContent = displayText.startsWith("@") ? displayText : `@${displayText.replace("@", "")}`;
-    userDisplay.style.display = "block";
-  }
 }
 
 /**
@@ -2256,7 +2291,7 @@ async function showCreateChallengeModal() {
 
               currentUser = {
                 fid,
-                username: finalUsername || `fid:${fid}`,
+                username: finalUsername || null, // Never set to fid: - leave null until we have real username
                 displayName:
                   (displayName && displayName.trim()) ||
                   finalUsername ||
@@ -2288,7 +2323,9 @@ async function showCreateChallengeModal() {
           if (context && context.user && context.user.fid) {
             currentUser = {
               fid: context.user.fid,
-              username: context.user.username || `fid:${context.user.fid}`,
+              username: (context.user.username && !context.user.username.startsWith("fid:")) 
+                ? context.user.username 
+                : null, // Never set to fid: - leave null until we have real username
               displayName:
                 context.user.displayName || context.user.username || "Reader",
             };
