@@ -268,30 +268,37 @@ function startUserSyncWatcher() {
             let displayName = payload.displayName || payload.name;
 
             // Fetch username from Farcaster API if not in token
-            if (!username && fid) {
+            // Always try to fetch from API to ensure we have the latest username
+            if (fid) {
               try {
+                console.log(`Fetching username for fid=${fid} from Farcaster API...`);
                 const farcasterResponse = await fetch(
                   `https://api.farcaster.xyz/v2/user-by-fid?fid=${fid}`
                 );
                 if (farcasterResponse.ok) {
                   const farcasterData = await farcasterResponse.json();
+                  console.log("Farcaster API response:", farcasterData);
                   if (farcasterData?.result?.user) {
-                    username = farcasterData.result.user.username;
-                    displayName =
-                      farcasterData.result.user.displayName || username;
+                    username = farcasterData.result.user.username || username;
+                    displayName = farcasterData.result.user.displayName || displayName || username;
+                    console.log(`Fetched username: ${username}, displayName: ${displayName}`);
                   }
                 }
               } catch (apiError) {
-                // Ignore API errors
+                console.error("Could not fetch username from API:", apiError.message);
               }
             }
 
+            // Only use fid fallback if we truly don't have a username
+            const finalUsername = username && username !== `fid:${fid}` ? username : null;
+
             currentUser = {
               fid,
-              username: username || `fid:${fid}`,
-              displayName: displayName || username || "Reader",
+              username: finalUsername || `fid:${fid}`,
+              displayName: displayName || finalUsername || "Reader",
             };
             setActiveUserId(currentUser.fid);
+            console.log("Current user set:", currentUser);
             syncUserDataFromServer().catch((err) => {
               console.log("Sync failed (non-blocking):", err.message);
             });
