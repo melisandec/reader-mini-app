@@ -430,7 +430,8 @@ function startUserSyncWatcher() {
 
           currentUser = {
             fid,
-            username: (username && !username.startsWith("fid:")) ? username : null, // Never set to fid:
+            username:
+              username && !username.startsWith("fid:") ? username : null, // Never set to fid:
             displayName: displayName || username || "Reader",
           };
           setActiveUserId(currentUser.fid);
@@ -961,7 +962,7 @@ async function identifyUser() {
       } else if (userInfo?.username && !userInfo.username.startsWith("fid:")) {
         realUsername = userInfo.username;
       }
-      
+
       currentUser = {
         fid: user.fid || userInfo?.fid,
         username: realUsername, // Only set if we have a real username, never fid:
@@ -1046,65 +1047,88 @@ async function updateUserDisplay() {
         }
       }
 
-      // Final fallback - but NEVER use fid: as fallback
-      if (!username || username.startsWith("fid:")) {
-        // Only use currentUser.username if it's a real username (not fid:)
-        if (currentUser.username && !currentUser.username.startsWith("fid:")) {
+      // Final fallback - but NEVER use fid: or "Reader" as fallback
+      if (!username || username.startsWith("fid:") || username === "Reader") {
+        // Only use currentUser.username if it's a real username (not fid: or "Reader")
+        if (
+          currentUser.username &&
+          !currentUser.username.startsWith("fid:") &&
+          currentUser.username !== "Reader"
+        ) {
           username = currentUser.username;
-        } else if (currentUser.displayName && !currentUser.displayName.startsWith("fid:")) {
+        } else if (
+          currentUser.displayName &&
+          !currentUser.displayName.startsWith("fid:") &&
+          currentUser.displayName !== "Reader"
+        ) {
           username = currentUser.displayName;
+        } else {
+          // No real username found - leave as null
+          username = null;
         }
-        // If we still don't have a username, leave it null - don't use fid:
       }
 
       // Update currentUser with fetched username
-      if (username && !username.startsWith("fid:")) {
+      if (username && !username.startsWith("fid:") && username !== "Reader") {
         currentUser.username = username;
       }
 
-      // Display username
-      const displayText = username.replace(/^@/, "");
-      userDisplay.textContent = `@${displayText}`;
-      userDisplay.style.display = "block";
+      // Display username or show "Loading..."
+      if (username && username !== "Reader") {
+        const displayText = username.replace(/^@/, "");
+        userDisplay.textContent = `@${displayText}`;
+        userDisplay.style.display = "block";
       } else {
-        // Fallback to current user data - but never use fid:
-        const displayText = 
-          (currentUser.username && !currentUser.username.startsWith("fid:")) 
-            ? currentUser.username 
-            : (currentUser.displayName && !currentUser.displayName.startsWith("fid:"))
-            ? currentUser.displayName
-            : null;
-        
-        if (displayText) {
-          userDisplay.textContent = displayText.startsWith("@")
-            ? displayText
-            : `@${displayText.replace("@", "")}`;
-          userDisplay.style.display = "block";
-        } else {
-          // No username available yet - hide or show "Loading..."
-          userDisplay.textContent = "Loading...";
-          userDisplay.style.display = "block";
-        }
+        userDisplay.textContent = "Loading...";
+        userDisplay.style.display = "block";
       }
-    } catch (error) {
-      // Fallback to current user data on error - but never use fid:
-      const displayText = 
-        (currentUser.username && !currentUser.username.startsWith("fid:")) 
-          ? currentUser.username 
-          : (currentUser.displayName && !currentUser.displayName.startsWith("fid:"))
+    } else {
+      // Fallback to current user data - but never use fid: or "Reader"
+      const displayText =
+        currentUser.username &&
+        !currentUser.username.startsWith("fid:") &&
+        currentUser.username !== "Reader"
+          ? currentUser.username
+          : currentUser.displayName &&
+            !currentUser.displayName.startsWith("fid:") &&
+            currentUser.displayName !== "Reader"
           ? currentUser.displayName
           : null;
-      
+
       if (displayText) {
         userDisplay.textContent = displayText.startsWith("@")
           ? displayText
           : `@${displayText.replace("@", "")}`;
         userDisplay.style.display = "block";
       } else {
+        // No username available yet - hide or show "Loading..."
         userDisplay.textContent = "Loading...";
         userDisplay.style.display = "block";
       }
     }
+  } catch (error) {
+    // Fallback to current user data on error - but never use fid: or "Reader"
+    const displayText =
+      currentUser.username &&
+      !currentUser.username.startsWith("fid:") &&
+      currentUser.username !== "Reader"
+        ? currentUser.username
+        : currentUser.displayName &&
+          !currentUser.displayName.startsWith("fid:") &&
+          currentUser.displayName !== "Reader"
+        ? currentUser.displayName
+        : null;
+
+    if (displayText) {
+      userDisplay.textContent = displayText.startsWith("@")
+        ? displayText
+        : `@${displayText.replace("@", "")}`;
+      userDisplay.style.display = "block";
+    } else {
+      userDisplay.textContent = "Loading...";
+      userDisplay.style.display = "block";
+    }
+  }
 }
 
 /**
@@ -2326,9 +2350,11 @@ async function showCreateChallengeModal() {
           if (context && context.user && context.user.fid) {
             currentUser = {
               fid: context.user.fid,
-              username: (context.user.username && !context.user.username.startsWith("fid:")) 
-                ? context.user.username 
-                : null, // Never set to fid: - leave null until we have real username
+              username:
+                context.user.username &&
+                !context.user.username.startsWith("fid:")
+                  ? context.user.username
+                  : null, // Never set to fid: - leave null until we have real username
               displayName:
                 context.user.displayName || context.user.username || "Reader",
             };
