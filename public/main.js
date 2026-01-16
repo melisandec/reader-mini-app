@@ -1017,9 +1017,19 @@ async function updateUserDisplay() {
 
   try {
     // Fetch user data from database (like leaderboard does)
+    console.log(`[updateUserDisplay] Fetching from /api/user-data?fid=${currentUser.fid}`);
     const response = await fetch(`/api/user-data?fid=${currentUser.fid}`);
+    console.log(`[updateUserDisplay] Database API response status: ${response.status}`);
+    
     if (response.ok) {
       const data = await response.json();
+      console.log(`[updateUserDisplay] Database data:`, { 
+        hasUsername: !!data?.username, 
+        hasDisplayName: !!data?.displayName,
+        hasStatsUsername: !!data?.stats?.username,
+        username: data?.username,
+        displayName: data?.displayName
+      });
 
       // Get username from database (same logic as leaderboard)
       let username =
@@ -1028,22 +1038,36 @@ async function updateUserDisplay() {
         data?.stats?.username ||
         data?.stats?.displayName;
 
+      console.log(`[updateUserDisplay] Username from database: "${username}"`);
+
       // If still no username or it's a fid, try Farcaster API
-      if (!username || username.startsWith("fid:")) {
+      if (!username || username.startsWith("fid:") || username === "Reader") {
+        console.log(`[updateUserDisplay] No valid username from database, trying Farcaster API...`);
         try {
           const farcasterResponse = await fetch(
             `https://api.farcaster.xyz/v2/user-by-fid?fid=${currentUser.fid}`
           );
+          console.log(`[updateUserDisplay] Farcaster API response status: ${farcasterResponse.status}`);
+          
           if (farcasterResponse.ok) {
             const farcasterData = await farcasterResponse.json();
+            console.log(`[updateUserDisplay] Farcaster API data:`, farcasterData);
+            
             if (farcasterData?.result?.user?.username) {
               username = farcasterData.result.user.username;
+              console.log(`[updateUserDisplay] Got username from Farcaster API: "${username}"`);
             } else if (farcasterData?.result?.user?.displayName) {
               username = farcasterData.result.user.displayName;
+              console.log(`[updateUserDisplay] Got displayName from Farcaster API: "${username}"`);
+            } else {
+              console.log(`[updateUserDisplay] Farcaster API returned no username or displayName`);
             }
+          } else {
+            const errorText = await farcasterResponse.text();
+            console.error(`[updateUserDisplay] Farcaster API error (${farcasterResponse.status}):`, errorText);
           }
         } catch (apiError) {
-          // Ignore API errors
+          console.error(`[updateUserDisplay] Farcaster API exception:`, apiError);
         }
       }
 
@@ -1083,6 +1107,7 @@ async function updateUserDisplay() {
         userDisplay.style.display = "block";
       }
     } else {
+      console.error(`[updateUserDisplay] Database API failed with status ${response.status}`);
       // Fallback to current user data - but never use fid: or "Reader"
       const displayText =
         currentUser.username &&
@@ -1107,6 +1132,7 @@ async function updateUserDisplay() {
       }
     }
   } catch (error) {
+    console.error(`[updateUserDisplay] Exception:`, error);
     // Fallback to current user data on error - but never use fid: or "Reader"
     const displayText =
       currentUser.username &&
