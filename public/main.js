@@ -3269,9 +3269,20 @@ function showNotification(message) {
   }, 3000);
 }
 
+// Add immediate logging when script loads
+console.log("=== MAIN.JS LOADED ===");
+console.log("SDK imported:", typeof sdk !== "undefined");
+console.log("SDK value:", sdk);
+console.log("Document ready state:", document.readyState);
+
 // Initialize when DOM is ready
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", init);
+  console.log("Waiting for DOMContentLoaded...");
+  document.addEventListener("DOMContentLoaded", () => {
+    console.log("DOMContentLoaded fired, calling init()");
+    init();
+  });
 } else {
+  console.log("DOM already ready, calling init() immediately");
   init();
 }
