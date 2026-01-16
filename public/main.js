@@ -74,7 +74,10 @@ async function init() {
       // Wait a bit more for SDK to fully initialize before trying to get user
       setTimeout(() => {
         identifyUser().catch((err) => {
-          console.log("User identification failed (non-blocking):", err.message);
+          console.log(
+            "User identification failed (non-blocking):",
+            err.message
+          );
         });
         startUserSyncWatcher();
       }, 500);
@@ -279,9 +282,12 @@ function startUserSyncWatcher() {
     if (sdk && sdk.quickAuth && typeof sdk.quickAuth.getToken === "function") {
       try {
         // Add a small delay to ensure SDK is fully initialized
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise((resolve) => setTimeout(resolve, 200));
         const { token } = await sdk.quickAuth.getToken();
-        console.log("quickAuth.getToken() called in userSyncWatcher, token received:", token ? "yes" : "no");
+        console.log(
+          "quickAuth.getToken() called in userSyncWatcher, token received:",
+          token ? "yes" : "no"
+        );
         if (token) {
           const payload = JSON.parse(atob(token.split(".")[1]));
           if (payload.sub) {
@@ -812,9 +818,12 @@ async function identifyUser() {
     if (sdk && sdk.quickAuth && typeof sdk.quickAuth.getToken === "function") {
       try {
         // Add a small delay to ensure SDK is fully initialized
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise((resolve) => setTimeout(resolve, 200));
         const { token } = await sdk.quickAuth.getToken();
-        console.log("quickAuth.getToken() called in identifyUser, token received:", token ? "yes" : "no");
+        console.log(
+          "quickAuth.getToken() called in identifyUser, token received:",
+          token ? "yes" : "no"
+        );
         if (token) {
           // Decode JWT to get user info
           const payload = JSON.parse(atob(token.split(".")[1]));
@@ -2108,12 +2117,19 @@ async function showCreateChallengeModal() {
     console.log("User not identified, attempting to get user info...");
     try {
       // Try quickAuth.getToken() first (recommended method)
-      if (sdk && sdk.quickAuth && typeof sdk.quickAuth.getToken === "function") {
+      if (
+        sdk &&
+        sdk.quickAuth &&
+        typeof sdk.quickAuth.getToken === "function"
+      ) {
         try {
           // Add a small delay to ensure SDK is fully initialized
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise((resolve) => setTimeout(resolve, 200));
           const { token } = await sdk.quickAuth.getToken();
-          console.log("quickAuth.getToken() called in showCreateChallengeModal, token received:", token ? "yes" : "no");
+          console.log(
+            "quickAuth.getToken() called in showCreateChallengeModal, token received:",
+            token ? "yes" : "no"
+          );
           if (token) {
             // Decode JWT to get user info
             const payload = JSON.parse(atob(token.split(".")[1]));
