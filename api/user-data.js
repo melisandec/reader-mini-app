@@ -41,9 +41,65 @@ export default async function handler(req, res) {
         }
         const data = JSON.parse(raw);
         console.log(
-          `API: Returning ${data.sessions?.length || 0} sessions for fid=${fid}`
+          `API: Returning ${data.sessions?.length || 0} sessions for fid=${fid}, current username: ${data?.username || 'none'}`
         );
-        res.status(200).json(data);
+        
+        // Get username from data
+        let username = data.username || data.displayName || data.stats?.username || data.stats?.displayName;
+        
+        // If username is fid: or Reader, fetch from Farcaster API and update database
+        if (!username || username.startsWith('fid:') || username === 'Reader') {
+          try {
+            console.log(`API: Fetching real username from Farcaster API for fid=${fid}`);
+            const farcasterResponse = await fetch(
+              `https://api.farcaster.xyz/v2/user-by-fid?fid=${fid}`
+            );
+            if (farcasterResponse.ok) {
+              const farcasterData = await farcasterResponse.json();
+              if (farcasterData?.result?.user?.username) {
+                username = farcasterData.result.user.username;
+                console.log(`API: Got username from Farcaster API: ${username}`);
+                
+                // Update database with real username (async, don't wait)
+                const updatedData = {
+                  ...data,
+                  username: username,
+                  displayName: farcasterData.result.user.displayName || username,
+                };
+                client.set(key, JSON.stringify(updatedData)).catch(err => {
+                  console.error(`API: Failed to update username in database:`, err);
+                });
+              } else if (farcasterData?.result?.user?.displayName) {
+                username = farcasterData.result.user.displayName;
+                console.log(`API: Got displayName from Farcaster API: ${username}`);
+                
+                // Update database
+                const updatedData = {
+                  ...data,
+                  username: username,
+                  displayName: username,
+                };
+                client.set(key, JSON.stringify(updatedData)).catch(err => {
+                  console.error(`API: Failed to update username in database:`, err);
+                });
+              }
+            } else {
+              console.error(`API: Farcaster API returned status ${farcasterResponse.status}`);
+            }
+          } catch (apiError) {
+            console.error(`API: Failed to fetch username from Farcaster API:`, apiError.message);
+          }
+        }
+        
+        // Return data with real username at top level
+        const response = {
+          ...data,
+          username: (username && !username.startsWith('fid:') && username !== 'Reader') ? username : null,
+          displayName: (data.displayName && data.displayName !== 'Reader') ? data.displayName : (username && !username.startsWith('fid:') && username !== 'Reader') ? username : null,
+        };
+        
+        console.log(`API: Returning with username: ${response.username || 'null'}`);
+        res.status(200).json(response);
         return;
       } catch (error) {
         console.error("GET error:", error);
