@@ -42,7 +42,7 @@ async function callSdkReady() {
       console.log("SDK not available");
       return;
     }
-    
+
     // Check if ready function exists and is callable
     if (sdk.actions && typeof sdk.actions.ready === "function") {
       try {
@@ -51,7 +51,10 @@ async function callSdkReady() {
       } catch (readyError) {
         // Some platforms (like desktop) might not support ready()
         // This is okay - the app should still work
-        console.log("SDK ready() not supported on this platform:", readyError.message);
+        console.log(
+          "SDK ready() not supported on this platform:",
+          readyError.message
+        );
       }
     } else {
       console.log("SDK actions.ready not available");
@@ -66,19 +69,21 @@ async function callSdkReady() {
 async function init() {
   try {
     // Delay readiness slightly so the splash can be seen
-    setTimeout(() => {
-      callSdkReady();
+    setTimeout(async () => {
+      await callSdkReady();
+      // Wait a bit more for SDK to fully initialize before trying to get user
+      setTimeout(() => {
+        identifyUser().catch((err) => {
+          console.log("User identification failed (non-blocking):", err.message);
+        });
+        startUserSyncWatcher();
+      }, 500);
     }, 600);
 
     // Initialize dark mode
     initDarkMode();
 
-    // Get user information from Farcaster (optional, doesn't block app)
-    // Don't await - let it run in background to avoid blocking initialization
-    identifyUser().catch((err) => {
-      console.log("User identification failed (non-blocking):", err.message);
-    });
-    startUserSyncWatcher();
+    // Note: identifyUser and startUserSyncWatcher are now called after SDK is ready
 
     // Set time-based greeting
     updateTimeBasedGreeting();
@@ -296,11 +301,17 @@ function startUserSyncWatcher() {
                 console.log(`API response status: ${farcasterResponse.status}`);
                 if (farcasterResponse.ok) {
                   const farcasterData = await farcasterResponse.json();
-                  console.log("Farcaster API response:", JSON.stringify(farcasterData, null, 2));
+                  console.log(
+                    "Farcaster API response:",
+                    JSON.stringify(farcasterData, null, 2)
+                  );
                   if (farcasterData?.result?.user) {
                     const apiUsername = farcasterData.result.user.username;
-                    const apiDisplayName = farcasterData.result.user.displayName;
-                    console.log(`API returned username: "${apiUsername}", displayName: "${apiDisplayName}"`);
+                    const apiDisplayName =
+                      farcasterData.result.user.displayName;
+                    console.log(
+                      `API returned username: "${apiUsername}", displayName: "${apiDisplayName}"`
+                    );
                     if (apiUsername) {
                       username = apiUsername;
                     }
@@ -313,11 +324,17 @@ function startUserSyncWatcher() {
                       `After API fetch - username: "${username}", displayName: "${displayName}"`
                     );
                   } else {
-                    console.log("API response missing user data:", farcasterData);
+                    console.log(
+                      "API response missing user data:",
+                      farcasterData
+                    );
                   }
                 } else {
                   const errorText = await farcasterResponse.text();
-                  console.error(`API error (${farcasterResponse.status}):`, errorText);
+                  console.error(
+                    `API error (${farcasterResponse.status}):`,
+                    errorText
+                  );
                 }
               } catch (apiError) {
                 console.error(
@@ -329,20 +346,27 @@ function startUserSyncWatcher() {
 
             // Only use fid fallback if we truly don't have a username
             // Make sure username is a valid string, not empty
-            const finalUsername = username && 
-                                  typeof username === "string" && 
-                                  username.trim() !== "" && 
-                                  username !== `fid:${fid}` 
-                                  ? username.trim() 
-                                  : null;
+            const finalUsername =
+              username &&
+              typeof username === "string" &&
+              username.trim() !== "" &&
+              username !== `fid:${fid}`
+                ? username.trim()
+                : null;
 
             currentUser = {
               fid,
               username: finalUsername || `fid:${fid}`,
-              displayName: (displayName && displayName.trim()) || finalUsername || "Reader",
+              displayName:
+                (displayName && displayName.trim()) ||
+                finalUsername ||
+                "Reader",
             };
             setActiveUserId(currentUser.fid);
-            console.log("Current user set:", JSON.stringify(currentUser, null, 2));
+            console.log(
+              "Current user set:",
+              JSON.stringify(currentUser, null, 2)
+            );
             syncUserDataFromServer().catch((err) => {
               console.log("Sync failed (non-blocking):", err.message);
             });
@@ -812,11 +836,17 @@ async function identifyUser() {
                 console.log(`API response status: ${farcasterResponse.status}`);
                 if (farcasterResponse.ok) {
                   const farcasterData = await farcasterResponse.json();
-                  console.log("Farcaster API response:", JSON.stringify(farcasterData, null, 2));
+                  console.log(
+                    "Farcaster API response:",
+                    JSON.stringify(farcasterData, null, 2)
+                  );
                   if (farcasterData?.result?.user) {
                     const apiUsername = farcasterData.result.user.username;
-                    const apiDisplayName = farcasterData.result.user.displayName;
-                    console.log(`API returned username: "${apiUsername}", displayName: "${apiDisplayName}"`);
+                    const apiDisplayName =
+                      farcasterData.result.user.displayName;
+                    console.log(
+                      `API returned username: "${apiUsername}", displayName: "${apiDisplayName}"`
+                    );
                     if (apiUsername) {
                       username = apiUsername;
                     }
@@ -829,11 +859,17 @@ async function identifyUser() {
                       `After API fetch - username: "${username}", displayName: "${displayName}"`
                     );
                   } else {
-                    console.log("API response missing user data:", farcasterData);
+                    console.log(
+                      "API response missing user data:",
+                      farcasterData
+                    );
                   }
                 } else {
                   const errorText = await farcasterResponse.text();
-                  console.error(`API error (${farcasterResponse.status}):`, errorText);
+                  console.error(
+                    `API error (${farcasterResponse.status}):`,
+                    errorText
+                  );
                 }
               } catch (apiError) {
                 console.error(
@@ -2118,21 +2154,28 @@ async function showCreateChallengeModal() {
                 }
               }
 
-            // Only use fid fallback if we truly don't have a username
-            // Make sure username is a valid string, not empty
-            const finalUsername = username && 
-                                  typeof username === "string" && 
-                                  username.trim() !== "" && 
-                                  username !== `fid:${fid}` 
-                                  ? username.trim() 
-                                  : null;
+              // Only use fid fallback if we truly don't have a username
+              // Make sure username is a valid string, not empty
+              const finalUsername =
+                username &&
+                typeof username === "string" &&
+                username.trim() !== "" &&
+                username !== `fid:${fid}`
+                  ? username.trim()
+                  : null;
 
-            currentUser = {
-              fid,
-              username: finalUsername || `fid:${fid}`,
-              displayName: (displayName && displayName.trim()) || finalUsername || "Reader",
-            };
-            console.log("Current user set:", JSON.stringify(currentUser, null, 2));
+              currentUser = {
+                fid,
+                username: finalUsername || `fid:${fid}`,
+                displayName:
+                  (displayName && displayName.trim()) ||
+                  finalUsername ||
+                  "Reader",
+              };
+              console.log(
+                "Current user set:",
+                JSON.stringify(currentUser, null, 2)
+              );
               setActiveUserId(currentUser.fid);
               console.log("Current user set:", currentUser);
               updateUserDisplay();
