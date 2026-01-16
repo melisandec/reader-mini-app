@@ -9,6 +9,78 @@ const STORAGE_KEYS = {
   STATS: 'reader_stats'
 };
 
+let activeUserId = 'legacy';
+
+function getStorageKey(baseKey) {
+  if (activeUserId === 'legacy') {
+    return baseKey;
+  }
+  return `${baseKey}:${activeUserId}`;
+}
+
+function migrateLegacyStorageToActive() {
+  if (activeUserId === 'legacy') {
+    return;
+  }
+
+  Object.values(STORAGE_KEYS).forEach((baseKey) => {
+    const legacyValue = localStorage.getItem(baseKey);
+    const scopedKey = getStorageKey(baseKey);
+    if (legacyValue && !localStorage.getItem(scopedKey)) {
+      localStorage.setItem(scopedKey, legacyValue);
+      localStorage.removeItem(baseKey);
+    }
+  });
+}
+
+export function setActiveUserId(fid) {
+  if (fid === null || fid === undefined || fid === '') {
+    activeUserId = 'legacy';
+    return;
+  }
+  const nextUserId = `fid:${String(fid)}`;
+  if (nextUserId === activeUserId) {
+    return;
+  }
+  activeUserId = nextUserId;
+  migrateLegacyStorageToActive();
+}
+
+export function getUserStorageKey(baseKey) {
+  return getStorageKey(baseKey);
+}
+
+export function overwriteSessions(sessions) {
+  try {
+    const safeSessions = Array.isArray(sessions) ? sessions : [];
+    localStorage.setItem(
+      getStorageKey(STORAGE_KEYS.SESSIONS),
+      JSON.stringify(safeSessions)
+    );
+    return true;
+  } catch (error) {
+    console.error("Error overwriting sessions:", error);
+    return false;
+  }
+}
+
+export function overwriteStats(stats) {
+  try {
+    const safeStats =
+      stats && typeof stats === "object"
+        ? { ...createUserStats(), ...stats }
+        : createUserStats();
+    localStorage.setItem(
+      getStorageKey(STORAGE_KEYS.STATS),
+      JSON.stringify(safeStats)
+    );
+    return safeStats;
+  } catch (error) {
+    console.error("Error overwriting stats:", error);
+    return createUserStats();
+  }
+}
+
 const COIN_REWARDS = {
   SESSION: 10,
   THREE_DAY_STREAK: 20,
@@ -30,7 +102,7 @@ export function saveSession(session) {
     // Sort by date (newest first)
     sessions.sort((a, b) => new Date(b.date) - new Date(a.date));
     
-    localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(sessions));
+    localStorage.setItem(getStorageKey(STORAGE_KEYS.SESSIONS), JSON.stringify(sessions));
     
     // Recalculate stats after saving
     const stats = recalculateStats();
@@ -59,7 +131,7 @@ export function saveSession(session) {
  */
 export function loadSessions() {
   try {
-    const data = localStorage.getItem(STORAGE_KEYS.SESSIONS);
+    const data = localStorage.getItem(getStorageKey(STORAGE_KEYS.SESSIONS));
     if (!data) {
       return [];
     }
@@ -104,7 +176,7 @@ export function deleteSession(sessionId) {
   try {
     const sessions = loadSessions();
     const filtered = sessions.filter(s => s.id !== sessionId);
-    localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(filtered));
+    localStorage.setItem(getStorageKey(STORAGE_KEYS.SESSIONS), JSON.stringify(filtered));
     
     // Recalculate stats after deletion
     recalculateStats();
@@ -121,8 +193,8 @@ export function deleteSession(sessionId) {
  */
 export function clearAllSessions() {
   try {
-    localStorage.removeItem(STORAGE_KEYS.SESSIONS);
-    localStorage.removeItem(STORAGE_KEYS.STATS);
+    localStorage.removeItem(getStorageKey(STORAGE_KEYS.SESSIONS));
+    localStorage.removeItem(getStorageKey(STORAGE_KEYS.STATS));
     return true;
   } catch (error) {
     console.error('Error clearing sessions:', error);
@@ -250,7 +322,7 @@ function calculateStreaks(sessions) {
  */
 export function loadStats() {
   try {
-    const data = localStorage.getItem(STORAGE_KEYS.STATS);
+    const data = localStorage.getItem(getStorageKey(STORAGE_KEYS.STATS));
     if (!data) {
       // If no stats exist, recalculate them
       return recalculateStats();
@@ -269,7 +341,7 @@ export function loadStats() {
  */
 export function saveStats(stats) {
   try {
-    localStorage.setItem(STORAGE_KEYS.STATS, JSON.stringify(stats));
+    localStorage.setItem(getStorageKey(STORAGE_KEYS.STATS), JSON.stringify(stats));
     return true;
   } catch (error) {
     console.error('Error saving stats:', error);

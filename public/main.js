@@ -10,6 +10,10 @@ import {
   saveSession,
   deleteSession,
   getSessionsByDate,
+  setActiveUserId,
+  getUserStorageKey,
+  overwriteSessions,
+  overwriteStats,
 } from "./storage.js";
 import { BADGES, createReadingSession } from "./models.js";
 
@@ -48,9 +52,8 @@ async function init() {
     initDarkMode();
 
     // Get user information from Farcaster (optional, doesn't block app)
-    identifyUser().catch((err) => {
-      console.log("User identification optional:", err);
-    });
+    await identifyUser();
+    await syncUserDataFromServer();
 
     // Set time-based greeting
     updateTimeBasedGreeting();
@@ -66,6 +69,113 @@ async function init() {
   } catch (error) {
     console.error("Error initializing app:", error);
   }
+}
+
+let syncTimeout = null;
+
+function mergeSessions(localSessions, remoteSessions) {
+  const remoteIds = new Set(remoteSessions.map((s) => s.id));
+  const localHasNew = localSessions.some((s) => !remoteIds.has(s.id));
+  const mergedMap = new Map();
+
+  remoteSessions.forEach((session) => {
+    if (session && session.id) {
+      mergedMap.set(session.id, session);
+    }
+  });
+
+  localSessions.forEach((session) => {
+    if (session && session.id && !mergedMap.has(session.id)) {
+      mergedMap.set(session.id, session);
+    }
+  });
+
+  const mergedSessions = Array.from(mergedMap.values()).sort(
+    (a, b) => new Date(b.date) - new Date(a.date)
+  );
+
+  return { mergedSessions, localHasNew };
+}
+
+async function syncUserDataFromServer() {
+  if (!currentUser?.fid) return;
+
+  try {
+    const response = await fetch(
+      `/api/user-data?fid=${encodeURIComponent(currentUser.fid)}`
+    );
+
+    if (response.status === 404) {
+      if (loadSessions().length > 0) {
+        await syncUserDataToServer();
+      }
+      return;
+    }
+
+    if (!response.ok) {
+      console.log("Unable to load remote data:", response.status);
+      return;
+    }
+
+    const remoteData = await response.json();
+    const remoteSessions = Array.isArray(remoteData.sessions)
+      ? remoteData.sessions
+      : [];
+    const localSessions = loadSessions();
+
+    const { mergedSessions, localHasNew } = mergeSessions(
+      localSessions,
+      remoteSessions
+    );
+
+    if (mergedSessions.length > 0) {
+      overwriteSessions(mergedSessions);
+    }
+
+    if (remoteData.stats) {
+      overwriteStats(remoteData.stats);
+    }
+
+    recalculateStats();
+
+    if (
+      localHasNew ||
+      (remoteSessions.length === 0 && localSessions.length > 0)
+    ) {
+      await syncUserDataToServer();
+    }
+  } catch (error) {
+    console.log("Remote sync skipped:", error);
+  }
+}
+
+async function syncUserDataToServer() {
+  if (!currentUser?.fid) return;
+
+  try {
+    const payload = {
+      sessions: loadSessions(),
+      stats: loadStats(),
+    };
+
+    await fetch(`/api/user-data?fid=${encodeURIComponent(currentUser.fid)}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (error) {
+    console.log("Remote save skipped:", error);
+  }
+}
+
+function scheduleSyncToServer() {
+  if (!currentUser?.fid) return;
+  clearTimeout(syncTimeout);
+  syncTimeout = setTimeout(() => {
+    syncUserDataToServer();
+  }, 600);
 }
 
 /**
@@ -99,7 +209,9 @@ function checkGoalCompletion(stats) {
 
   if (todayMinutes >= goal && goal > 0) {
     // Check if we've already celebrated today
-    const lastCelebration = localStorage.getItem("last_goal_celebration");
+    const lastCelebration = localStorage.getItem(
+      getUserStorageKey("last_goal_celebration")
+    );
     const today = new Date().toISOString().split("T")[0];
 
     if (lastCelebration !== today) {
@@ -108,7 +220,7 @@ function checkGoalCompletion(stats) {
           "You did it! You reached your goal today. Take a moment to appreciate that. 🎉",
           5000
         );
-        localStorage.setItem("last_goal_celebration", today);
+        localStorage.setItem(getUserStorageKey("last_goal_celebration"), today);
       }, 2000);
     }
   }
@@ -154,7 +266,9 @@ function checkMilestonesAndPromptShare(
 
   // Check for new personal speed record
   if (session && session.calculatedSpeed > 0) {
-    const previousMaxSpeed = localStorage.getItem("reader_max_speed");
+    const previousMaxSpeed = localStorage.getItem(
+      getUserStorageKey("reader_max_speed")
+    );
     const currentSpeed = session.calculatedSpeed;
 
     if (!previousMaxSpeed || currentSpeed > parseFloat(previousMaxSpeed)) {
@@ -163,7 +277,10 @@ function checkMilestonesAndPromptShare(
         !previousMaxSpeed ||
         currentSpeed >= parseFloat(previousMaxSpeed) * 1.1
       ) {
-        localStorage.setItem("reader_max_speed", currentSpeed.toString());
+        localStorage.setItem(
+          getUserStorageKey("reader_max_speed"),
+          currentSpeed.toString()
+        );
         milestones.push({
           type: "speed",
           message: `📚 Just set a new personal reading speed record on READER: ${currentSpeed.toFixed(
@@ -191,7 +308,7 @@ function checkMilestonesAndPromptShare(
 function savePreviousStats(stats) {
   try {
     localStorage.setItem(
-      "reader_previous_stats",
+      getUserStorageKey("reader_previous_stats"),
       JSON.stringify({
         currentStreak: stats.currentStreak,
         longestStreak: stats.longestStreak,
@@ -210,7 +327,9 @@ function savePreviousStats(stats) {
  */
 function loadPreviousStats() {
   try {
-    const data = localStorage.getItem("reader_previous_stats");
+    const data = localStorage.getItem(
+      getUserStorageKey("reader_previous_stats")
+    );
     return data ? JSON.parse(data) : null;
   } catch (error) {
     console.error("Error loading previous stats:", error);
@@ -432,6 +551,7 @@ async function identifyUser() {
         displayName:
           context.user.displayName || context.user.username || "Reader",
       };
+      setActiveUserId(currentUser.fid);
       console.log("User identified:", currentUser);
       updateUserDisplay();
     } else {
@@ -457,6 +577,7 @@ async function identifyUser() {
               newContext.user.username ||
               "Reader",
           };
+          setActiveUserId(currentUser.fid);
           updateUserDisplay();
         }
       } catch (signinError) {
@@ -678,6 +799,7 @@ function setupHistoryActions() {
       const sessionId = e.target.getAttribute("data-session-id");
       if (confirm("Are you sure you want to delete this session?")) {
         if (deleteSession(sessionId)) {
+          scheduleSyncToServer();
           displayStats(); // Refresh all stats
           showNotification(
             "Session removed. Your reading journey continues. 💙"
@@ -1352,6 +1474,7 @@ function setupGoalEditor() {
         return;
       }
       updateDailyGoal(minutes);
+      scheduleSyncToServer();
       displayDailyGoal();
       editor.style.display = "none";
       showNotification(
@@ -1440,6 +1563,7 @@ function setupManualSessionEntry() {
       // If editing, delete old session first
       if (editingId) {
         deleteSession(editingId);
+        scheduleSyncToServer();
         form.removeAttribute("data-editing-id");
       }
 
@@ -1451,6 +1575,7 @@ function setupManualSessionEntry() {
       const result = saveSession(session);
 
       if (result.success) {
+        scheduleSyncToServer();
         // Reset form
         form.reset();
         if (dateInput) {
@@ -1538,7 +1663,10 @@ function saveTimerState() {
       startTime: timerStartTime,
       timestamp: Date.now(),
     };
-    localStorage.setItem("reader_timer_state", JSON.stringify(timerState));
+    localStorage.setItem(
+      getUserStorageKey("reader_timer_state"),
+      JSON.stringify(timerState)
+    );
   } catch (error) {
     console.error("Error saving timer state:", error);
   }
@@ -1549,7 +1677,9 @@ function saveTimerState() {
  */
 function restoreTimerState() {
   try {
-    const savedState = localStorage.getItem("reader_timer_state");
+    const savedState = localStorage.getItem(
+      getUserStorageKey("reader_timer_state")
+    );
     if (!savedState) return;
 
     const state = JSON.parse(savedState);
@@ -1557,7 +1687,7 @@ function restoreTimerState() {
 
     // Only restore if saved within last 24 hours
     if (timeSinceSave > 24 * 60 * 60) {
-      localStorage.removeItem("reader_timer_state");
+      localStorage.removeItem(getUserStorageKey("reader_timer_state"));
       return;
     }
 
@@ -1582,7 +1712,7 @@ function restoreTimerState() {
     }
   } catch (error) {
     console.error("Error restoring timer state:", error);
-    localStorage.removeItem("reader_timer_state");
+    localStorage.removeItem(getUserStorageKey("reader_timer_state"));
   }
 }
 
@@ -1673,7 +1803,7 @@ function stopTimer() {
   }
 
   // Clear saved timer state
-  localStorage.removeItem("reader_timer_state");
+  localStorage.removeItem(getUserStorageKey("reader_timer_state"));
 }
 
 /**
@@ -1722,6 +1852,7 @@ async function saveTimerSession() {
     const result = saveSession(session);
 
     if (result.success) {
+      scheduleSyncToServer();
       // Reset timer
       timerSeconds = 0;
       timerStartTime = null;
@@ -1731,7 +1862,7 @@ async function saveTimerSession() {
       document.getElementById("timerPages").value = "";
 
       // Clear saved timer state
-      localStorage.removeItem("reader_timer_state");
+      localStorage.removeItem(getUserStorageKey("reader_timer_state"));
 
       // Load previous stats before refreshing
       const previousStats = loadPreviousStats();
