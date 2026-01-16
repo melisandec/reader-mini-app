@@ -61,7 +61,7 @@ async function callSdkReady() {
     }
   } catch (error) {
     // Don't let SDK errors break the app
-    console.log("SDK initialization error (non-blocking):", error.message);
+    console.error("SDK initialization error (non-blocking):", error.message);
   }
 }
 
