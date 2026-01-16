@@ -640,14 +640,16 @@ async function identifyUser() {
     if (typeof sdk.context === "function") {
       try {
         context = await sdk.context();
+        console.log("SDK context received:", context);
       } catch (e) {
         // Context might not be available if not in Farcaster context
-        // This is normal - don't log as error
-        return;
+        console.log("SDK context error:", e.message);
+        // Don't return early - try signIn instead
       }
     } else {
       // SDK context not available
-      return;
+      console.log("SDK context is not a function");
+      // Don't return early - try signIn instead
     }
 
     // If we got context with user, use it
@@ -1852,9 +1854,23 @@ function setupCreateChallengeButton() {
 /**
  * Show create challenge modal
  */
-function showCreateChallengeModal() {
+async function showCreateChallengeModal() {
+  // If user not identified yet, try to identify first
   if (!currentUser?.fid && !currentUser?.username) {
-    showNotification("Please sign in to create challenges", 4000);
+    console.log("User not identified, attempting to identify...");
+    try {
+      await identifyUser();
+      // Wait a moment for user to be set
+      await new Promise(resolve => setTimeout(resolve, 500));
+    } catch (error) {
+      console.error("Error identifying user:", error);
+    }
+  }
+
+  // Check again after attempting identification
+  if (!currentUser?.fid && !currentUser?.username) {
+    showNotification("Unable to identify user. Please try refreshing the app.", 4000);
+    console.log("Current user state:", currentUser);
     return;
   }
 
