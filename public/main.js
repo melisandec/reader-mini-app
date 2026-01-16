@@ -68,17 +68,30 @@ async function callSdkReady() {
 // Initialize the Farcaster Mini App SDK
 async function init() {
   try {
+    console.log("=== APP INIT STARTING ===");
+    console.log("SDK available:", !!sdk);
+    console.log("SDK object:", sdk);
+    
     // Delay readiness slightly so the splash can be seen
     setTimeout(async () => {
+      console.log("Calling SDK ready...");
       await callSdkReady();
+      console.log("SDK ready completed, checking SDK state...");
+      console.log("sdk exists:", !!sdk);
+      console.log("sdk.quickAuth exists:", !!(sdk && sdk.quickAuth));
+      console.log("sdk.quickAuth.getToken exists:", !!(sdk && sdk.quickAuth && typeof sdk.quickAuth.getToken === "function"));
+      
       // Wait a bit more for SDK to fully initialize before trying to get user
       setTimeout(() => {
+        console.log("Starting user identification...");
         identifyUser().catch((err) => {
-          console.log(
+          console.error(
             "User identification failed (non-blocking):",
-            err.message
+            err.message,
+            err.stack
           );
         });
+        console.log("Starting user sync watcher...");
         startUserSyncWatcher();
       }, 500);
     }, 600);
@@ -279,15 +292,19 @@ function startUserSyncWatcher() {
 
     // Try quickAuth first (recommended)
     // Wait a bit for SDK to be fully ready
+    console.log(`[userSyncWatcher attempt ${attempts}] Checking SDK...`);
     if (sdk && sdk.quickAuth && typeof sdk.quickAuth.getToken === "function") {
       try {
+        console.log(`[userSyncWatcher attempt ${attempts}] quickAuth available, calling...`);
         // Add a small delay to ensure SDK is fully initialized
         await new Promise((resolve) => setTimeout(resolve, 200));
+        console.log(`[userSyncWatcher attempt ${attempts}] Calling getToken()...`);
         const { token } = await sdk.quickAuth.getToken();
         console.log(
-          "quickAuth.getToken() called in userSyncWatcher, token received:",
+          `[userSyncWatcher attempt ${attempts}] quickAuth.getToken() called, token received:`,
           token ? "yes" : "no"
         );
+        console.log(`[userSyncWatcher attempt ${attempts}] Token length:`, token ? token.length : 0);
         if (token) {
           const payload = JSON.parse(atob(token.split(".")[1]));
           if (payload.sub) {
@@ -800,17 +817,30 @@ let signinAttempted = false;
  * Identify user via Farcaster
  */
 async function identifyUser() {
+  console.log("=== identifyUser() called ===");
+  console.log("Current user:", currentUser);
+  
   // Don't retry if we already have a user
   if (currentUser?.fid) {
+    console.log("User already identified, skipping");
     return;
   }
 
   try {
     // Check if SDK is available
+    console.log("Checking SDK availability...");
+    console.log("sdk exists:", !!sdk);
     if (!sdk) {
-      console.log("SDK not available");
+      console.error("SDK not available - cannot identify user");
       return;
     }
+    
+    console.log("SDK structure:", {
+      hasActions: !!sdk.actions,
+      hasQuickAuth: !!sdk.quickAuth,
+      hasContext: !!sdk.context,
+      quickAuthGetToken: !!(sdk.quickAuth && typeof sdk.quickAuth.getToken === "function")
+    });
 
     // Try to get user info using quickAuth (recommended method)
     let userInfo = null;
