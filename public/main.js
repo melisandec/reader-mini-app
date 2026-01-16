@@ -23,13 +23,13 @@ import {
 } from "./models.js";
 
 // CRITICAL: Initialize SDK and call ready() immediately
-(async function() {
+(async function () {
   try {
     // Initialize SDK first if init() exists
     if (sdk && typeof sdk.init === "function") {
       await sdk.init();
     }
-    
+
     // Call ready() immediately
     if (sdk?.actions?.ready) {
       await sdk.actions.ready();
@@ -67,7 +67,7 @@ async function init() {
   try {
     // Call ready() again in case top-level call failed
     await callSdkReady();
-    
+
     // Continue with initialization
     setTimeout(() => {
       identifyUser().catch(() => {});
@@ -992,30 +992,77 @@ async function identifyUser() {
 }
 
 /**
- * Update user display in UI
+ * Update user display in UI - fetch username from database like leaderboard does
  */
-function updateUserDisplay() {
-  if (currentUser) {
-    const userDisplay = document.getElementById("userDisplay");
-    if (userDisplay) {
-      // Show username or displayName, prefer username
-      const displayText =
-        currentUser.username ||
-        currentUser.displayName ||
-        `fid:${currentUser.fid}`;
-      // Remove @ if it's already there, then add it
-      const username = displayText.startsWith("@")
-        ? displayText
-        : `@${displayText.replace("@", "")}`;
-      userDisplay.textContent = username;
-      userDisplay.style.display = "block";
-    }
-  } else {
-    // Hide if no user
+async function updateUserDisplay() {
+  if (!currentUser?.fid) {
     const userDisplay = document.getElementById("userDisplay");
     if (userDisplay) {
       userDisplay.style.display = "none";
     }
+    return;
+  }
+
+  const userDisplay = document.getElementById("userDisplay");
+  if (!userDisplay) return;
+
+  try {
+    // Fetch user data from database (like leaderboard does)
+    const response = await fetch(`/api/user-data?fid=${currentUser.fid}`);
+    if (response.ok) {
+      const data = await response.json();
+      
+      // Get username from database (same logic as leaderboard)
+      let username = 
+        data?.username ||
+        data?.displayName ||
+        data?.stats?.username ||
+        data?.stats?.displayName;
+
+      // If still no username or it's a fid, try Farcaster API
+      if (!username || username.startsWith('fid:')) {
+        try {
+          const farcasterResponse = await fetch(
+            `https://api.farcaster.xyz/v2/user-by-fid?fid=${currentUser.fid}`
+          );
+          if (farcasterResponse.ok) {
+            const farcasterData = await farcasterResponse.json();
+            if (farcasterData?.result?.user?.username) {
+              username = farcasterData.result.user.username;
+            } else if (farcasterData?.result?.user?.displayName) {
+              username = farcasterData.result.user.displayName;
+            }
+          }
+        } catch (apiError) {
+          // Ignore API errors
+        }
+      }
+
+      // Final fallback
+      if (!username || username.startsWith('fid:')) {
+        username = currentUser.username || currentUser.displayName || `fid:${currentUser.fid}`;
+      }
+
+      // Update currentUser with fetched username
+      if (username && !username.startsWith('fid:')) {
+        currentUser.username = username;
+      }
+
+      // Display username
+      const displayText = username.replace(/^@/, '');
+      userDisplay.textContent = `@${displayText}`;
+      userDisplay.style.display = "block";
+    } else {
+      // Fallback to current user data
+      const displayText = currentUser.username || currentUser.displayName || `fid:${currentUser.fid}`;
+      userDisplay.textContent = displayText.startsWith("@") ? displayText : `@${displayText.replace("@", "")}`;
+      userDisplay.style.display = "block";
+    }
+  } catch (error) {
+    // Fallback to current user data on error
+    const displayText = currentUser.username || currentUser.displayName || `fid:${currentUser.fid}`;
+    userDisplay.textContent = displayText.startsWith("@") ? displayText : `@${displayText.replace("@", "")}`;
+    userDisplay.style.display = "block";
   }
 }
 
