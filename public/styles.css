@@ -231,7 +231,7 @@ h1 {
 
 .stats-row {
   display: flex;
-  justify-content: flex-start;
+  justify-content: space-between;
   align-items: center;
   gap: 8px;
 }
@@ -239,6 +239,7 @@ h1 {
 .streak-section {
   display: flex;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .streak-card {
