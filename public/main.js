@@ -99,14 +99,19 @@ function mergeSessions(localSessions, remoteSessions) {
 }
 
 async function syncUserDataFromServer() {
-  if (!currentUser?.fid) return;
+  if (!currentUser?.fid) {
+    console.log("Sync: No user fid, skipping");
+    return;
+  }
 
   try {
+    console.log(`Sync: Fetching data for fid=${currentUser.fid}`);
     const response = await fetch(
       `/api/user-data?fid=${encodeURIComponent(currentUser.fid)}`
     );
 
     if (response.status === 404) {
+      console.log("Sync: No remote data, uploading local if exists");
       if (loadSessions().length > 0) {
         await syncUserDataToServer();
       }
@@ -114,7 +119,7 @@ async function syncUserDataFromServer() {
     }
 
     if (!response.ok) {
-      console.log("Unable to load remote data:", response.status);
+      console.error("Sync: Unable to load remote data:", response.status, await response.text());
       return;
     }
 
@@ -124,6 +129,8 @@ async function syncUserDataFromServer() {
       : [];
     const localSessions = loadSessions();
 
+    console.log(`Sync: Remote has ${remoteSessions.length} sessions, local has ${localSessions.length}`);
+
     const { mergedSessions, localHasNew } = mergeSessions(
       localSessions,
       remoteSessions
@@ -131,10 +138,12 @@ async function syncUserDataFromServer() {
 
     if (mergedSessions.length > 0) {
       overwriteSessions(mergedSessions);
+      console.log(`Sync: Merged to ${mergedSessions.length} sessions`);
     }
 
     if (remoteData.stats) {
       overwriteStats(remoteData.stats);
+      console.log("Sync: Updated stats from remote");
     }
 
     recalculateStats();
@@ -143,15 +152,19 @@ async function syncUserDataFromServer() {
       localHasNew ||
       (remoteSessions.length === 0 && localSessions.length > 0)
     ) {
+      console.log("Sync: Local has new data, uploading");
       await syncUserDataToServer();
     }
   } catch (error) {
-    console.log("Remote sync skipped:", error);
+    console.error("Sync: Error syncing from server:", error);
   }
 }
 
 async function syncUserDataToServer() {
-  if (!currentUser?.fid) return;
+  if (!currentUser?.fid) {
+    console.log("Sync: No user fid, skipping upload");
+    return;
+  }
 
   try {
     const payload = {
@@ -159,15 +172,25 @@ async function syncUserDataToServer() {
       stats: loadStats(),
     };
 
-    await fetch(`/api/user-data?fid=${encodeURIComponent(currentUser.fid)}`, {
+    console.log(`Sync: Uploading ${payload.sessions.length} sessions for fid=${currentUser.fid}`);
+    const response = await fetch(`/api/user-data?fid=${encodeURIComponent(currentUser.fid)}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
     });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Sync: Upload failed:", response.status, errorText);
+      return;
+    }
+
+    const result = await response.json();
+    console.log("Sync: Upload successful", result);
   } catch (error) {
-    console.log("Remote save skipped:", error);
+    console.error("Sync: Error uploading to server:", error);
   }
 }
 
