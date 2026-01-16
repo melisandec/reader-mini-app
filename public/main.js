@@ -53,7 +53,7 @@ async function init() {
 
     // Get user information from Farcaster (optional, doesn't block app)
     await identifyUser();
-    await syncUserDataFromServer();
+    startUserSyncWatcher();
 
     // Set time-based greeting
     updateTimeBasedGreeting();
@@ -72,6 +72,7 @@ async function init() {
 }
 
 let syncTimeout = null;
+let userSyncWatcher = null;
 
 function mergeSessions(localSessions, remoteSessions) {
   const remoteIds = new Set(remoteSessions.map((s) => s.id));
@@ -176,6 +177,32 @@ function scheduleSyncToServer() {
   syncTimeout = setTimeout(() => {
     syncUserDataToServer();
   }, 600);
+}
+
+function startUserSyncWatcher() {
+  if (userSyncWatcher) return;
+  const startedAt = Date.now();
+
+  userSyncWatcher = setInterval(async () => {
+    if (currentUser?.fid) {
+      clearInterval(userSyncWatcher);
+      userSyncWatcher = null;
+      return;
+    }
+
+    await identifyUser();
+
+    if (currentUser?.fid) {
+      clearInterval(userSyncWatcher);
+      userSyncWatcher = null;
+      return;
+    }
+
+    if (Date.now() - startedAt > 8000) {
+      clearInterval(userSyncWatcher);
+      userSyncWatcher = null;
+    }
+  }, 800);
 }
 
 /**
@@ -552,6 +579,7 @@ async function identifyUser() {
           context.user.displayName || context.user.username || "Reader",
       };
       setActiveUserId(currentUser.fid);
+      await syncUserDataFromServer();
       console.log("User identified:", currentUser);
       updateUserDisplay();
     } else {
@@ -578,6 +606,7 @@ async function identifyUser() {
               "Reader",
           };
           setActiveUserId(currentUser.fid);
+          await syncUserDataFromServer();
           updateUserDisplay();
         }
       } catch (signinError) {
