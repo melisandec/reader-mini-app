@@ -1,4 +1,20 @@
-import { kv } from "@vercel/kv";
+import { createClient } from "redis";
+
+let redisClient = null;
+
+async function getRedisClient() {
+  if (redisClient) return redisClient;
+  const url = process.env.REDIS_URL;
+  if (!url) {
+    throw new Error("Missing REDIS_URL");
+  }
+  redisClient = createClient({ url });
+  redisClient.on("error", (error) => {
+    console.error("Redis Client Error:", error);
+  });
+  await redisClient.connect();
+  return redisClient;
+}
 
 export default async function handler(req, res) {
   const fid = req.query?.fid;
@@ -11,12 +27,13 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     try {
-      const data = await kv.get(key);
-      if (!data) {
+      const client = await getRedisClient();
+      const raw = await client.get(key);
+      if (!raw) {
         res.status(404).json({});
         return;
       }
-      res.status(200).json(data);
+      res.status(200).json(JSON.parse(raw));
       return;
     } catch (error) {
       res.status(500).json({ error: "Failed to read user data" });
@@ -26,13 +43,14 @@ export default async function handler(req, res) {
 
   if (req.method === "POST") {
     try {
+      const client = await getRedisClient();
       const body = req.body || {};
       const payload = {
         sessions: Array.isArray(body.sessions) ? body.sessions : [],
         stats: body.stats || null,
         updatedAt: Date.now(),
       };
-      await kv.set(key, payload);
+      await client.set(key, JSON.stringify(payload));
       res.status(200).json({ ok: true });
       return;
     } catch (error) {
