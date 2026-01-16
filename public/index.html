@@ -372,6 +372,26 @@
       console.log("User agent:", navigator.userAgent);
       console.log("Timestamp:", Date.now());
       
+      // CRITICAL: Try to call sdk.actions.ready() immediately if SDK is available
+      // This prevents the app from being stuck on splash screen
+      (async function() {
+        try {
+          // Wait a tiny bit for SDK to potentially load
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          // Check if SDK is available in window (might be injected by Farcaster)
+          if (window.sdk && window.sdk.actions && typeof window.sdk.actions.ready === "function") {
+            console.log("=== CALLING SDK.READY() FROM INLINE SCRIPT ===");
+            await window.sdk.actions.ready();
+            console.log("=== SDK.READY() CALLED SUCCESSFULLY ===");
+          } else {
+            console.log("=== SDK NOT AVAILABLE IN INLINE SCRIPT ===");
+          }
+        } catch (e) {
+          console.error("=== ERROR CALLING SDK.READY() FROM INLINE SCRIPT ===", e);
+        }
+      })();
+      
       // Monitor for script load errors
       window.addEventListener("error", function(e) {
         console.error("SCRIPT ERROR:", e.message, e.filename, e.lineno, e.error);

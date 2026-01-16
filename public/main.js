@@ -72,10 +72,27 @@ async function init() {
     console.log("SDK available:", !!sdk);
     console.log("SDK object:", sdk);
 
-    // Delay readiness slightly so the splash can be seen
-    setTimeout(async () => {
-      console.log("Calling SDK ready...");
+    // CRITICAL: Call sdk.actions.ready() IMMEDIATELY to hide splash screen
+    // Don't delay this - it's blocking the app from loading
+    console.log("=== CALLING SDK.READY() IMMEDIATELY ===");
+    try {
       await callSdkReady();
+      console.log("=== SDK.READY() CALLED SUCCESSFULLY ===");
+    } catch (readyError) {
+      console.error("=== SDK.READY() FAILED ===", readyError);
+      // Try again after a short delay
+      setTimeout(async () => {
+        try {
+          await callSdkReady();
+          console.log("=== SDK.READY() CALLED ON RETRY ===");
+        } catch (e) {
+          console.error("=== SDK.READY() FAILED ON RETRY ===", e);
+        }
+      }, 200);
+    }
+
+    // Continue with rest of initialization
+    setTimeout(async () => {
       console.log("SDK ready completed, checking SDK state...");
       console.log("sdk exists:", !!sdk);
       console.log("sdk.quickAuth exists:", !!(sdk && sdk.quickAuth));
@@ -97,7 +114,7 @@ async function init() {
         console.log("Starting user sync watcher...");
         startUserSyncWatcher();
       }, 500);
-    }, 600);
+    }, 100);
 
     // Initialize dark mode
     initDarkMode();
