@@ -230,7 +230,7 @@ function startUserSyncWatcher() {
   if (userSyncWatcher) return;
   const startedAt = Date.now();
   let attempts = 0;
-  const maxAttempts = 10; // Stop after 10 attempts (8 seconds)
+  const maxAttempts = 5; // Reduced attempts to prevent SDK issues
 
   userSyncWatcher = setInterval(async () => {
     attempts++;
@@ -241,25 +241,44 @@ function startUserSyncWatcher() {
       return;
     }
 
-    // Stop if we've tried too many times or signin was attempted
-    if (attempts > maxAttempts || signinAttempted) {
+    // Stop if we've tried too many times
+    // Don't check signinAttempted - we're not using auto signIn anymore
+    if (attempts > maxAttempts) {
       clearInterval(userSyncWatcher);
       userSyncWatcher = null;
       if (!currentUser?.fid) {
-        console.log("User identification stopped - not in Farcaster context");
+        console.log("User identification stopped - will identify on demand");
       }
       return;
     }
 
-    await identifyUser();
-
-    if (currentUser?.fid) {
-      clearInterval(userSyncWatcher);
-      userSyncWatcher = null;
-      return;
+    // Only try to get context, don't trigger signIn
+    try {
+      if (sdk && typeof sdk.context === "function") {
+        const context = await sdk.context();
+        if (context && context.user && context.user.fid) {
+          currentUser = {
+            fid: context.user.fid,
+            username: context.user.username || `fid:${context.user.fid}`,
+            displayName:
+              context.user.displayName || context.user.username || "Reader",
+          };
+          setActiveUserId(currentUser.fid);
+          syncUserDataFromServer().catch((err) => {
+            console.log("Sync failed (non-blocking):", err.message);
+          });
+          console.log("User identified:", currentUser);
+          updateUserDisplay();
+          clearInterval(userSyncWatcher);
+          userSyncWatcher = null;
+          return;
+        }
+      }
+    } catch (error) {
+      // Ignore errors - just try again next time
     }
 
-    if (Date.now() - startedAt > 8000) {
+    if (Date.now() - startedAt > 4000) {
       clearInterval(userSyncWatcher);
       userSyncWatcher = null;
     }
@@ -672,14 +691,19 @@ async function identifyUser() {
 
     // Try signIn if no context and signIn hasn't been attempted
     // Note: it's signIn (capital I), not signin
-    if (
-      !signinAttempted &&
-      sdk?.actions?.signIn &&
-      typeof sdk.actions.signIn === "function"
-    ) {
-      signinAttempted = true;
-      try {
-        await sdk.actions.signIn();
+    // IMPORTANT: Don't auto-trigger signIn during initialization - only on user action
+    // The SDK's signIn dialog can crash if called too early
+    // We'll only call signIn when user explicitly clicks a button that needs auth
+    if (false) { // Disabled auto signIn to prevent SDK crashes
+      // This code is kept for reference but disabled
+      if (
+        !signinAttempted &&
+        sdk?.actions?.signIn &&
+        typeof sdk.actions.signIn === "function"
+      ) {
+        signinAttempted = true;
+        try {
+          await sdk.actions.signIn();
 
         // After signIn, get context again
         if (typeof sdk.context === "function") {
