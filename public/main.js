@@ -211,6 +211,9 @@ async function syncUserDataToServer() {
         username: currentUser.username,
         displayName: currentUser.displayName,
       },
+      // Save username at top level too (like leaderboard expects)
+      username: currentUser.username || currentUser.displayName,
+      displayName: currentUser.displayName || currentUser.username,
     };
 
     console.log(
