@@ -363,6 +363,18 @@
       </button>
     </nav>
 
+    <!-- Debug: Log immediately to verify script loading -->
+    <script>
+      console.log("=== INLINE SCRIPT EXECUTING ===");
+      console.log("Document ready:", document.readyState);
+      console.log("Location:", window.location.href);
+      
+      // Monitor for script load
+      window.addEventListener("error", function(e) {
+        console.error("SCRIPT ERROR:", e.message, e.filename, e.lineno);
+      });
+    </script>
+    
     <script type="module" src="main.js"></script>
   </body>
 </html>
