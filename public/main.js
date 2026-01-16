@@ -119,7 +119,11 @@ async function syncUserDataFromServer() {
     }
 
     if (!response.ok) {
-      console.error("Sync: Unable to load remote data:", response.status, await response.text());
+      console.error(
+        "Sync: Unable to load remote data:",
+        response.status,
+        await response.text()
+      );
       return;
     }
 
@@ -129,7 +133,9 @@ async function syncUserDataFromServer() {
       : [];
     const localSessions = loadSessions();
 
-    console.log(`Sync: Remote has ${remoteSessions.length} sessions, local has ${localSessions.length}`);
+    console.log(
+      `Sync: Remote has ${remoteSessions.length} sessions, local has ${localSessions.length}`
+    );
 
     const { mergedSessions, localHasNew } = mergeSessions(
       localSessions,
@@ -172,14 +178,19 @@ async function syncUserDataToServer() {
       stats: loadStats(),
     };
 
-    console.log(`Sync: Uploading ${payload.sessions.length} sessions for fid=${currentUser.fid}`);
-    const response = await fetch(`/api/user-data?fid=${encodeURIComponent(currentUser.fid)}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
+    console.log(
+      `Sync: Uploading ${payload.sessions.length} sessions for fid=${currentUser.fid}`
+    );
+    const response = await fetch(
+      `/api/user-data?fid=${encodeURIComponent(currentUser.fid)}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -583,18 +594,27 @@ function updateThemeIcon(theme) {
  */
 async function identifyUser() {
   try {
-    // Check if user is already signed in
-    // SDK context might be a property or promise
-    let context;
-    if (typeof sdk.context === "function") {
-      context = await sdk.context();
-    } else if (sdk.context instanceof Promise) {
-      context = await sdk.context;
-    } else {
-      context = sdk.context;
+    // Try to access context safely - don't call it as a function
+    let context = null;
+    
+    // Check if context exists and try different access patterns
+    if (sdk && 'context' in sdk) {
+      try {
+        // Try as a property first
+        if (sdk.context && typeof sdk.context !== 'function') {
+          if (sdk.context instanceof Promise) {
+            context = await sdk.context;
+          } else if (sdk.context && typeof sdk.context === 'object') {
+            context = sdk.context;
+          }
+        }
+      } catch (e) {
+        console.log("Context access pattern 1 failed:", e.message);
+      }
     }
 
-    if (context && context.user) {
+    // If we got context with user, use it
+    if (context && context.user && context.user.fid) {
       currentUser = {
         fid: context.user.fid,
         username: context.user.username || `fid:${context.user.fid}`,
@@ -605,39 +625,42 @@ async function identifyUser() {
       await syncUserDataFromServer();
       console.log("User identified:", currentUser);
       updateUserDisplay();
-    } else {
-      // Try to sign in
-      try {
-        await sdk.actions.signin();
-        // After signin, get context again
-        let newContext;
-        if (typeof sdk.context === "function") {
-          newContext = await sdk.context();
-        } else if (sdk.context instanceof Promise) {
-          newContext = await sdk.context;
-        } else {
-          newContext = sdk.context;
-        }
+      return;
+    }
 
-        if (newContext && newContext.user) {
-          currentUser = {
-            fid: newContext.user.fid,
-            username: newContext.user.username || `fid:${newContext.user.fid}`,
-            displayName:
-              newContext.user.displayName ||
-              newContext.user.username ||
-              "Reader",
-          };
-          setActiveUserId(currentUser.fid);
-          await syncUserDataFromServer();
-          updateUserDisplay();
+    // Try signin if no context
+    try {
+      console.log("Attempting signin...");
+      await sdk.actions.signin();
+      
+      // After signin, try accessing context again
+      if (sdk.context) {
+        if (sdk.context instanceof Promise) {
+          context = await sdk.context;
+        } else if (typeof sdk.context === 'object') {
+          context = sdk.context;
         }
-      } catch (signinError) {
-        console.log("User signin cancelled or not available:", signinError);
       }
+
+      if (context && context.user && context.user.fid) {
+        currentUser = {
+          fid: context.user.fid,
+          username: context.user.username || `fid:${context.user.fid}`,
+          displayName:
+            context.user.displayName ||
+            context.user.username ||
+            "Reader",
+        };
+        setActiveUserId(currentUser.fid);
+        await syncUserDataFromServer();
+        console.log("User identified after signin:", currentUser);
+        updateUserDisplay();
+      }
+    } catch (signinError) {
+      console.log("User signin cancelled or not available:", signinError.message);
     }
   } catch (error) {
-    console.error("Error identifying user:", error);
+    console.error("Error identifying user:", error.message);
   }
 }
 
