@@ -84,8 +84,111 @@
                     <div class="coins-value" id="coinsCount">0</div>
                   </div>
                 </div>
+            </div>
+          </div>
+
+          <!-- Focus Mode Section -->
+          <div class="focus-section">
+            <h2 class="section-title">Focus Mode</h2>
+            <p class="section-subtitle">
+              Set aside time just for you and your book
+            </p>
+            <div class="focus-timer-card">
+              <div class="timer-display" id="timerDisplay">00:00</div>
+              <div class="timer-controls">
+                <button class="timer-btn" id="timerStartBtn">Start</button>
+                <button
+                  class="timer-btn"
+                  id="timerPauseBtn"
+                  style="display: none"
+                >
+                  Pause
+                </button>
+                <button class="timer-btn" id="timerStopBtn" style="display: none">
+                  Stop
+                </button>
+              </div>
+              <div
+                class="timer-session-info"
+                id="timerSessionInfo"
+                style="display: none"
+              >
+                <input
+                  type="text"
+                  id="timerBookName"
+                  placeholder="What story captured you?"
+                  class="timer-book-input"
+                />
+                <input
+                  type="number"
+                  id="timerPages"
+                  placeholder="How many pages?"
+                  min="0"
+                  class="timer-pages-input"
+                />
+                <button class="timer-save-btn" id="timerSaveBtn">
+                  Save This Moment
+                </button>
               </div>
             </div>
+          </div>
+
+          <!-- Manual Session Entry Section -->
+          <div class="manual-entry-section">
+            <h2 class="section-title">Log Your Reading</h2>
+            <p class="section-subtitle">
+              Every session matters, no matter how small
+            </p>
+            <div class="manual-entry-card">
+              <form id="manualSessionForm" class="manual-session-form">
+                <div class="form-group">
+                  <label for="manualBookName" class="form-label"
+                    >Book Name *</label
+                  >
+                  <input
+                    type="text"
+                    id="manualBookName"
+                    placeholder="What story are you living today?"
+                    class="form-input"
+                    required
+                  />
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="manualPages" class="form-label"
+                      >Pages Read *</label
+                    >
+                    <input
+                      type="number"
+                      id="manualPages"
+                      placeholder="0"
+                      min="0"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label for="manualMinutes" class="form-label"
+                      >Minutes *</label
+                    >
+                    <input
+                      type="number"
+                      id="manualMinutes"
+                      placeholder="0"
+                      min="1"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="manualDate" class="form-label">Date</label>
+                  <input type="date" id="manualDate" class="form-input" />
+                </div>
+                <button type="submit" class="form-submit-btn">I Read This</button>
+              </form>
+            </div>
+          </div>
 
           <!-- Badges Display -->
           <div class="badges-section">
@@ -144,109 +247,6 @@
                   Cancel
                 </button>
               </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Manual Session Entry Section -->
-        <div class="manual-entry-section">
-          <h2 class="section-title">Log Your Reading</h2>
-          <p class="section-subtitle">
-            Every session matters, no matter how small
-          </p>
-          <div class="manual-entry-card">
-            <form id="manualSessionForm" class="manual-session-form">
-              <div class="form-group">
-                <label for="manualBookName" class="form-label"
-                  >Book Name *</label
-                >
-                <input
-                  type="text"
-                  id="manualBookName"
-                  placeholder="What story are you living today?"
-                  class="form-input"
-                  required
-                />
-              </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="manualPages" class="form-label"
-                    >Pages Read *</label
-                  >
-                  <input
-                    type="number"
-                    id="manualPages"
-                    placeholder="0"
-                    min="0"
-                    class="form-input"
-                    required
-                  />
-                </div>
-                <div class="form-group">
-                  <label for="manualMinutes" class="form-label"
-                    >Minutes *</label
-                  >
-                  <input
-                    type="number"
-                    id="manualMinutes"
-                    placeholder="0"
-                    min="1"
-                    class="form-input"
-                    required
-                  />
-                </div>
-              </div>
-              <div class="form-group">
-                <label for="manualDate" class="form-label">Date</label>
-                <input type="date" id="manualDate" class="form-input" />
-              </div>
-              <button type="submit" class="form-submit-btn">I Read This</button>
-            </form>
-          </div>
-        </div>
-
-        <!-- Focus Mode Section -->
-        <div class="focus-section">
-          <h2 class="section-title">Focus Mode</h2>
-          <p class="section-subtitle">
-            Set aside time just for you and your book
-          </p>
-          <div class="focus-timer-card">
-            <div class="timer-display" id="timerDisplay">00:00</div>
-            <div class="timer-controls">
-              <button class="timer-btn" id="timerStartBtn">Start</button>
-              <button
-                class="timer-btn"
-                id="timerPauseBtn"
-                style="display: none"
-              >
-                Pause
-              </button>
-              <button class="timer-btn" id="timerStopBtn" style="display: none">
-                Stop
-              </button>
-            </div>
-            <div
-              class="timer-session-info"
-              id="timerSessionInfo"
-              style="display: none"
-            >
-              <input
-                type="text"
-                id="timerBookName"
-                placeholder="What story captured you?"
-                class="timer-book-input"
-              />
-              <input
-                type="number"
-                id="timerPages"
-                placeholder="How many pages?"
-                min="0"
-                class="timer-pages-input"
-              />
-              <button class="timer-save-btn" id="timerSaveBtn">
-                Save This Moment
-              </button>
             </div>
           </div>
         </div>
