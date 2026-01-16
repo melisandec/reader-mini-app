@@ -2,6 +2,35 @@ import { createClient } from "redis";
 
 let redisClient = null;
 
+/**
+ * Remove duplicate sessions from an array
+ * Duplicates are identified by:
+ * 1. Same ID (exact duplicates)
+ * 2. Same date + bookName + pagesRead + minutesRead (logical duplicates)
+ */
+function deduplicateSessions(sessions) {
+  if (!Array.isArray(sessions) || sessions.length === 0) {
+    return [];
+  }
+
+  const seen = new Map();
+  const unique = [];
+
+  for (const session of sessions) {
+    // Create a unique key for this session
+    const key = `${session.date}|${session.bookName}|${session.pagesRead}|${session.minutesRead}`;
+    
+    // Check if we've seen this exact ID or this logical duplicate
+    if (!seen.has(session.id) && !seen.has(key)) {
+      seen.set(session.id, true);
+      seen.set(key, true);
+      unique.push(session);
+    }
+  }
+
+  return unique;
+}
+
 async function getRedisClient() {
   if (redisClient) return redisClient;
   const url = process.env.REDIS_URL;
@@ -39,18 +68,44 @@ export default async function handler(req, res) {
           res.status(404).json({});
           return;
         }
-        const data = JSON.parse(raw);
+        let data = JSON.parse(raw);
+        
+        // Deduplicate sessions before returning
+        if (data.sessions && Array.isArray(data.sessions)) {
+          const originalCount = data.sessions.length;
+          data.sessions = deduplicateSessions(data.sessions);
+          const removedCount = originalCount - data.sessions.length;
+          
+          if (removedCount > 0) {
+            console.log(`API: Removed ${removedCount} duplicate session(s) for fid=${fid}`);
+            // Save deduplicated data back to database (async, don't wait)
+            client.set(key, JSON.stringify(data)).catch(err => {
+              console.error(`API: Failed to save deduplicated data:`, err);
+            });
+          }
+        }
+        
         console.log(
-          `API: Returning ${data.sessions?.length || 0} sessions for fid=${fid}, current username: ${data?.username || 'none'}`
+          `API: Returning ${
+            data.sessions?.length || 0
+          } sessions for fid=${fid}, current username: ${
+            data?.username || "none"
+          }`
         );
-        
+
         // Get username from data
-        let username = data.username || data.displayName || data.stats?.username || data.stats?.displayName;
-        
+        let username =
+          data.username ||
+          data.displayName ||
+          data.stats?.username ||
+          data.stats?.displayName;
+
         // If username is fid: or Reader, fetch from Farcaster API and update database
-        if (!username || username.startsWith('fid:') || username === 'Reader') {
+        if (!username || username.startsWith("fid:") || username === "Reader") {
           try {
-            console.log(`API: Fetching real username from Farcaster API for fid=${fid}`);
+            console.log(
+              `API: Fetching real username from Farcaster API for fid=${fid}`
+            );
             const farcasterResponse = await fetch(
               `https://api.farcaster.xyz/v2/user-by-fid?fid=${fid}`
             );
@@ -58,47 +113,75 @@ export default async function handler(req, res) {
               const farcasterData = await farcasterResponse.json();
               if (farcasterData?.result?.user?.username) {
                 username = farcasterData.result.user.username;
-                console.log(`API: Got username from Farcaster API: ${username}`);
-                
+                console.log(
+                  `API: Got username from Farcaster API: ${username}`
+                );
+
                 // Update database with real username (async, don't wait)
                 const updatedData = {
                   ...data,
                   username: username,
-                  displayName: farcasterData.result.user.displayName || username,
+                  displayName:
+                    farcasterData.result.user.displayName || username,
                 };
-                client.set(key, JSON.stringify(updatedData)).catch(err => {
-                  console.error(`API: Failed to update username in database:`, err);
+                client.set(key, JSON.stringify(updatedData)).catch((err) => {
+                  console.error(
+                    `API: Failed to update username in database:`,
+                    err
+                  );
                 });
               } else if (farcasterData?.result?.user?.displayName) {
                 username = farcasterData.result.user.displayName;
-                console.log(`API: Got displayName from Farcaster API: ${username}`);
-                
+                console.log(
+                  `API: Got displayName from Farcaster API: ${username}`
+                );
+
                 // Update database
                 const updatedData = {
                   ...data,
                   username: username,
                   displayName: username,
                 };
-                client.set(key, JSON.stringify(updatedData)).catch(err => {
-                  console.error(`API: Failed to update username in database:`, err);
+                client.set(key, JSON.stringify(updatedData)).catch((err) => {
+                  console.error(
+                    `API: Failed to update username in database:`,
+                    err
+                  );
                 });
               }
             } else {
-              console.error(`API: Farcaster API returned status ${farcasterResponse.status}`);
+              console.error(
+                `API: Farcaster API returned status ${farcasterResponse.status}`
+              );
             }
           } catch (apiError) {
-            console.error(`API: Failed to fetch username from Farcaster API:`, apiError.message);
+            console.error(
+              `API: Failed to fetch username from Farcaster API:`,
+              apiError.message
+            );
           }
         }
-        
+
         // Return data with real username at top level
         const response = {
           ...data,
-          username: (username && !username.startsWith('fid:') && username !== 'Reader') ? username : null,
-          displayName: (data.displayName && data.displayName !== 'Reader') ? data.displayName : (username && !username.startsWith('fid:') && username !== 'Reader') ? username : null,
+          username:
+            username && !username.startsWith("fid:") && username !== "Reader"
+              ? username
+              : null,
+          displayName:
+            data.displayName && data.displayName !== "Reader"
+              ? data.displayName
+              : username &&
+                !username.startsWith("fid:") &&
+                username !== "Reader"
+              ? username
+              : null,
         };
-        
-        console.log(`API: Returning with username: ${response.username || 'null'}`);
+
+        console.log(
+          `API: Returning with username: ${response.username || "null"}`
+        );
         res.status(200).json(response);
         return;
       } catch (error) {
@@ -118,8 +201,18 @@ export default async function handler(req, res) {
         }
         body = body || {};
 
+        // Deduplicate sessions before saving
+        const sessions = Array.isArray(body.sessions) ? body.sessions : [];
+        const deduplicatedSessions = deduplicateSessions(sessions);
+        
+        if (sessions.length !== deduplicatedSessions.length) {
+          console.log(
+            `API: Deduplicated ${sessions.length - deduplicatedSessions.length} duplicate session(s) before saving for fid=${fid}`
+          );
+        }
+
         const payload = {
-          sessions: Array.isArray(body.sessions) ? body.sessions : [],
+          sessions: deduplicatedSessions,
           stats: body.stats || null,
           // Get username from top level first, then fallback to stats
           username:
