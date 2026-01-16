@@ -15,7 +15,12 @@ import {
   overwriteSessions,
   overwriteStats,
 } from "./storage.js";
-import { BADGES, createReadingSession } from "./models.js";
+import {
+  BADGES,
+  createReadingSession,
+  createReadingChallenge,
+  createChallengeProgress,
+} from "./models.js";
 
 // Global user state
 let currentUser = null;
@@ -791,6 +796,12 @@ function displayStats() {
     // Display leaderboard
     displayLeaderboard();
 
+    // Display challenges
+    displayChallenges();
+
+    // Check for challenge invite in URL
+    checkChallengeInvite();
+
     // Display reading history
     displayReadingHistory();
 
@@ -1484,6 +1495,520 @@ function setupLeaderboardTabs() {
 }
 
 /**
+ * Display challenges
+ */
+async function displayChallenges() {
+  try {
+    const container = document.getElementById("challengesContainer");
+    if (!container) return;
+
+    container.innerHTML = '<div class="loading">Loading challenges...</div>';
+
+    // Fetch challenges
+    const userId = currentUser?.fid || currentUser?.username;
+    const url = userId
+      ? `/api/challenges?userId=${encodeURIComponent(userId)}`
+      : "/api/challenges";
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      container.innerHTML =
+        '<div class="empty-state"><div class="empty-state-text">Unable to load challenges</div></div>';
+      return;
+    }
+
+    const data = await response.json();
+    const challenges = data.challenges || [];
+
+    if (challenges.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">🏆</div>
+          <div class="empty-state-title">No challenges yet</div>
+          <div class="empty-state-text">Create your first challenge to compete with friends!</div>
+        </div>
+      `;
+      setupCreateChallengeButton();
+      return;
+    }
+
+    container.innerHTML = "";
+
+    // Display each challenge
+    for (const challenge of challenges) {
+      await displayChallengeCard(challenge, container);
+    }
+
+    setupCreateChallengeButton();
+  } catch (error) {
+    console.error("Error displaying challenges:", error);
+    const container = document.getElementById("challengesContainer");
+    if (container) {
+      container.innerHTML =
+        '<div class="empty-state"><div class="empty-state-text">Error loading challenges</div></div>';
+    }
+  }
+}
+
+/**
+ * Display a single challenge card
+ */
+async function displayChallengeCard(challenge, container) {
+  const userId = currentUser?.fid || currentUser?.username;
+  const isParticipant = challenge.participants?.includes(userId);
+
+  // Get user's progress
+  let progress = null;
+  if (userId) {
+    try {
+      const response = await fetch(
+        `/api/challenges?challengeId=${challenge.id}&userId=${encodeURIComponent(userId)}`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        progress = data.progress;
+      }
+    } catch (error) {
+      console.error("Error fetching progress:", error);
+    }
+  }
+
+  const progressPercent = progress
+    ? Math.min((progress.currentValue / progress.goalValue) * 100, 100)
+    : 0;
+  const isCompleted = progress?.completed || false;
+  const isActive =
+    new Date(challenge.startDate) <= new Date() &&
+    new Date(challenge.endDate) >= new Date();
+
+  const challengeCard = document.createElement("div");
+  challengeCard.className = `challenge-card ${isCompleted ? "completed" : ""} ${!isActive ? "inactive" : ""}`;
+
+  const typeIcon =
+    challenge.type === "friend"
+      ? "👥"
+      : challenge.type === "community"
+      ? "🌍"
+      : challenge.type === "weekly"
+      ? "📅"
+      : "🗓️";
+
+  const goalTypeLabel =
+    challenge.goalType === "pages"
+      ? "pages"
+      : challenge.goalType === "minutes"
+      ? "minutes"
+      : challenge.goalType === "sessions"
+      ? "sessions"
+      : "day streak";
+
+  challengeCard.innerHTML = `
+    <div class="challenge-header">
+      <div class="challenge-type">${typeIcon} ${challenge.type}</div>
+      ${isCompleted ? '<div class="challenge-badge">✓ Completed</div>' : ""}
+      ${!isActive ? '<div class="challenge-badge inactive">Ended</div>' : ""}
+    </div>
+    <h3 class="challenge-title">${challenge.title}</h3>
+    <p class="challenge-description">${challenge.description || ""}</p>
+    <div class="challenge-goal">
+      Goal: ${challenge.goalValue.toLocaleString()} ${goalTypeLabel}
+    </div>
+    <div class="challenge-dates">
+      ${new Date(challenge.startDate).toLocaleDateString()} - ${new Date(challenge.endDate).toLocaleDateString()}
+    </div>
+    ${
+      progress
+        ? `
+    <div class="challenge-progress">
+      <div class="progress-bar">
+        <div class="progress-fill" style="width: ${progressPercent}%"></div>
+      </div>
+      <div class="progress-text">
+        ${progress.currentValue.toLocaleString()} / ${progress.goalValue.toLocaleString()} ${goalTypeLabel}
+        (${Math.round(progressPercent)}%)
+      </div>
+    </div>
+    `
+        : ""
+    }
+    <div class="challenge-participants">
+      ${challenge.participants?.length || 0} participant${(challenge.participants?.length || 0) !== 1 ? "s" : ""}
+    </div>
+    <div class="challenge-actions">
+      ${
+        !isParticipant && isActive
+          ? `<button class="challenge-join-btn" data-challenge-id="${challenge.id}">Join Challenge</button>`
+          : ""
+      }
+      ${
+        isParticipant
+          ? `<button class="challenge-view-btn" data-challenge-id="${challenge.id}">View Leaderboard</button>`
+          : ""
+      }
+      ${
+        challenge.type === "friend" && challenge.createdBy === userId && isActive
+          ? `<button class="challenge-invite-btn" data-challenge-id="${challenge.id}">Invite Friends</button>`
+          : ""
+      }
+    </div>
+  `;
+
+  container.appendChild(challengeCard);
+
+  // Setup event listeners
+  const joinBtn = challengeCard.querySelector(".challenge-join-btn");
+  if (joinBtn) {
+    joinBtn.addEventListener("click", () => joinChallenge(challenge.id));
+  }
+
+  const viewBtn = challengeCard.querySelector(".challenge-view-btn");
+  if (viewBtn) {
+    viewBtn.addEventListener("click", () => viewChallengeLeaderboard(challenge.id));
+  }
+
+  const inviteBtn = challengeCard.querySelector(".challenge-invite-btn");
+  if (inviteBtn) {
+    inviteBtn.addEventListener("click", () => inviteToChallenge(challenge));
+  }
+}
+
+/**
+ * Join a challenge
+ */
+async function joinChallenge(challengeId) {
+  if (!currentUser?.fid && !currentUser?.username) {
+    showNotification("Please sign in to join challenges", 4000);
+    return;
+  }
+
+  try {
+    const userId = currentUser.fid || currentUser.username;
+    const response = await fetch("/api/challenges", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        challengeId,
+        userId,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to join challenge");
+    }
+
+    showNotification("You've joined the challenge! Let's do this. 💪", 4000);
+    displayChallenges();
+  } catch (error) {
+    console.error("Error joining challenge:", error);
+    showNotification("Couldn't join challenge. Try again? 💙", 4000);
+  }
+}
+
+/**
+ * View challenge leaderboard
+ */
+async function viewChallengeLeaderboard(challengeId) {
+  try {
+    const response = await fetch(
+      `/api/challenge-leaderboard?challengeId=${challengeId}`
+    );
+    if (!response.ok) {
+      throw new Error("Failed to load leaderboard");
+    }
+
+    const data = await response.json();
+    const { leaderboard, challenge } = data;
+
+    // Create modal
+    const modal = document.createElement("div");
+    modal.className = "modal-overlay";
+    modal.innerHTML = `
+      <div class="modal-content challenge-leaderboard-modal">
+        <div class="modal-header">
+          <h2>${challenge.title}</h2>
+          <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+        </div>
+        <div class="challenge-leaderboard">
+          ${leaderboard
+            .map(
+              (entry) => `
+            <div class="leaderboard-item ${entry.completed ? "completed" : ""}">
+              <div class="leaderboard-rank">#${entry.rank}</div>
+              <div class="leaderboard-username">${entry.username}</div>
+              <div class="leaderboard-value">
+                ${entry.currentValue.toLocaleString()} / ${entry.goalValue.toLocaleString()}
+                ${entry.completed ? " ✓" : ""}
+              </div>
+            </div>
+          `
+            )
+            .join("")}
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) {
+        modal.remove();
+      }
+    });
+  } catch (error) {
+    console.error("Error viewing leaderboard:", error);
+    showNotification("Couldn't load leaderboard. Try again? 💙", 4000);
+  }
+}
+
+/**
+ * Invite friends to challenge via Farcaster
+ */
+async function inviteToChallenge(challenge) {
+  try {
+    const shareMessage = `📚 Join me in a reading challenge: "${challenge.title}" - ${challenge.goalValue} ${challenge.goalType === "pages" ? "pages" : challenge.goalType === "minutes" ? "minutes" : "sessions"} by ${new Date(challenge.endDate).toLocaleDateString()}!\n\nJoin: https://reader-mini-app.vercel.app?challenge=${challenge.id}`;
+
+    await sdk.actions.composeCast({
+      text: shareMessage,
+    });
+
+    showNotification("Challenge shared! Let's see who joins. 🎉", 4000);
+  } catch (error) {
+    console.error("Error sharing challenge:", error);
+    showNotification("Couldn't share challenge. Try again? 💙", 4000);
+  }
+}
+
+/**
+ * Setup create challenge button
+ */
+function setupCreateChallengeButton() {
+  const btn = document.getElementById("createChallengeBtn");
+  if (!btn) return;
+
+  btn.addEventListener("click", () => {
+    showCreateChallengeModal();
+  });
+}
+
+/**
+ * Show create challenge modal
+ */
+function showCreateChallengeModal() {
+  if (!currentUser?.fid && !currentUser?.username) {
+    showNotification("Please sign in to create challenges", 4000);
+    return;
+  }
+
+  const modal = document.createElement("div");
+  modal.className = "modal-overlay";
+  modal.innerHTML = `
+    <div class="modal-content create-challenge-modal">
+      <div class="modal-header">
+        <h2>Create Challenge</h2>
+        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+      </div>
+      <form id="createChallengeForm" class="challenge-form">
+        <div class="form-group">
+          <label>Challenge Type</label>
+          <select id="challengeType" required>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="friend">Friend Challenge</option>
+            <option value="community">Community Event</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Title</label>
+          <input type="text" id="challengeTitle" placeholder="e.g., January Reading Sprint" required />
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="challengeDescription" placeholder="What's this challenge about?"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Goal Type</label>
+          <select id="challengeGoalType" required>
+            <option value="pages">Pages</option>
+            <option value="minutes">Minutes</option>
+            <option value="sessions">Sessions</option>
+            <option value="streak">Day Streak</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Goal Value</label>
+          <input type="number" id="challengeGoalValue" min="1" required />
+        </div>
+        <div class="form-group">
+          <label>Start Date</label>
+          <input type="date" id="challengeStartDate" required />
+        </div>
+        <div class="form-group">
+          <label>End Date</label>
+          <input type="date" id="challengeEndDate" required />
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="challengeIsPublic" />
+            Make this a public community challenge
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+          <button type="submit" class="btn-primary">Create Challenge</button>
+        </div>
+      </form>
+    </div>
+  `;
+
+  // Set default dates
+  const today = new Date().toISOString().split("T")[0];
+  const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split("T")[0];
+  const nextMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split("T")[0];
+
+  modal.querySelector("#challengeStartDate").value = today;
+  modal.querySelector("#challengeEndDate").value = nextWeek;
+
+  // Update end date based on type
+  modal.querySelector("#challengeType").addEventListener("change", (e) => {
+    const type = e.target.value;
+    const endDateInput = modal.querySelector("#challengeEndDate");
+    if (type === "weekly") {
+      endDateInput.value = nextWeek;
+    } else if (type === "monthly") {
+      endDateInput.value = nextMonth;
+    }
+  });
+
+  document.body.appendChild(modal);
+
+  // Handle form submission
+  modal.querySelector("#createChallengeForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const userId = currentUser.fid || currentUser.username;
+    const challengeData = {
+      type: modal.querySelector("#challengeType").value,
+      title: modal.querySelector("#challengeTitle").value,
+      description: modal.querySelector("#challengeDescription").value,
+      goalType: modal.querySelector("#challengeGoalType").value,
+      goalValue: parseInt(modal.querySelector("#challengeGoalValue").value, 10),
+      startDate: modal.querySelector("#challengeStartDate").value,
+      endDate: modal.querySelector("#challengeEndDate").value,
+      createdBy: userId,
+      isPublic: modal.querySelector("#challengeIsPublic").checked,
+      rewardCoins: 100,
+    };
+
+    try {
+      const response = await fetch("/api/challenges", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(challengeData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create challenge");
+      }
+
+      showNotification("Challenge created! Let's get reading. 📚", 4000);
+      modal.remove();
+      displayChallenges();
+    } catch (error) {
+      console.error("Error creating challenge:", error);
+      showNotification("Couldn't create challenge. Try again? 💙", 4000);
+    }
+  });
+
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+}
+
+/**
+ * Check for challenge invite in URL and auto-join if needed
+ */
+async function checkChallengeInvite() {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const challengeId = urlParams.get("challenge");
+
+    if (challengeId && currentUser?.fid) {
+      // Wait a bit for user to be identified
+      setTimeout(async () => {
+        if (currentUser?.fid || currentUser?.username) {
+          try {
+            // Check if user is already in challenge
+            const response = await fetch(
+              `/api/challenges?challengeId=${challengeId}&userId=${encodeURIComponent(currentUser.fid || currentUser.username)}`
+            );
+            if (response.ok) {
+              const data = await response.json();
+              if (data.challenge && !data.challenge.participants?.includes(currentUser.fid || currentUser.username)) {
+                // Auto-join the challenge
+                await joinChallenge(challengeId);
+                showNotification("You've joined the challenge! Welcome. 🎉", 5000);
+              }
+            }
+          } catch (error) {
+            console.error("Error checking challenge invite:", error);
+          }
+        }
+      }, 2000);
+    }
+  } catch (error) {
+    console.error("Error checking challenge invite:", error);
+  }
+}
+
+/**
+ * Update challenge progress when session is saved
+ */
+async function updateChallengeProgress(session) {
+  if (!currentUser?.fid && !currentUser?.username) return;
+
+  try {
+    const userId = currentUser.fid || currentUser.username;
+    const response = await fetch(`/api/challenges?userId=${encodeURIComponent(userId)}`);
+    if (!response.ok) return;
+
+    const data = await response.json();
+    const challenges = data.challenges || [];
+
+    // Check each active challenge
+    for (const challenge of challenges) {
+      const isActive =
+        new Date(challenge.startDate) <= new Date() &&
+        new Date(challenge.endDate) >= new Date();
+      const isParticipant = challenge.participants?.includes(userId);
+
+      if (isActive && isParticipant) {
+        // Check if session date is within challenge period
+        if (
+          session.date >= challenge.startDate &&
+          session.date <= challenge.endDate
+        ) {
+          // Refresh challenges display to show updated progress
+          setTimeout(() => {
+            displayChallenges();
+          }, 1000);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error updating challenge progress:", error);
+  }
+}
+
+/**
  * Setup share achievement button
  */
 function setupShareButton(stats) {
@@ -1711,6 +2236,10 @@ function setupManualSessionEntry() {
 
       if (result.success) {
         scheduleSyncToServer();
+        // Update challenge progress
+        updateChallengeProgress(session).catch((err) => {
+          console.log("Challenge progress update failed (non-blocking):", err);
+        });
         // Reset form
         form.reset();
         if (dateInput) {

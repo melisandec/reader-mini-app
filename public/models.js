@@ -92,3 +92,85 @@ export const BADGES = {
     icon: '🏃'
   }
 };
+
+/**
+ * @typedef {Object} ReadingChallenge
+ * @property {string} id - Unique challenge identifier
+ * @property {string} type - 'weekly' | 'monthly' | 'friend' | 'community'
+ * @property {string} title - Challenge title
+ * @property {string} description - Challenge description
+ * @property {string} goalType - 'pages' | 'minutes' | 'sessions' | 'streak'
+ * @property {number} goalValue - Target value to achieve
+ * @property {string} startDate - ISO date string (YYYY-MM-DD)
+ * @property {string} endDate - ISO date string (YYYY-MM-DD)
+ * @property {string} createdBy - FID or username of creator
+ * @property {string[]} participants - Array of participant FIDs/usernames
+ * @property {boolean} isPublic - Whether challenge is public/community-wide
+ * @property {number} rewardCoins - Coins awarded for completion
+ * @property {string} createdAt - ISO timestamp
+ */
+
+/**
+ * @typedef {Object} ChallengeProgress
+ * @property {string} challengeId - Challenge identifier
+ * @property {string} userId - User FID or username
+ * @property {number} currentValue - Current progress value
+ * @property {number} goalValue - Target value
+ * @property {boolean} completed - Whether challenge is completed
+ * @property {string} completedAt - ISO timestamp when completed (if applicable)
+ * @property {number} rank - User's rank in challenge leaderboard
+ */
+
+/**
+ * Creates a new ReadingChallenge object
+ * @param {Object} options
+ * @returns {ReadingChallenge}
+ */
+export function createReadingChallenge({
+  type,
+  title,
+  description,
+  goalType,
+  goalValue,
+  startDate,
+  endDate,
+  createdBy,
+  isPublic = false,
+  rewardCoins = 100,
+  participants = []
+}) {
+  return {
+    id: `challenge-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    type,
+    title,
+    description,
+    goalType,
+    goalValue,
+    startDate,
+    endDate,
+    createdBy,
+    participants: [...participants, createdBy],
+    isPublic,
+    rewardCoins,
+    createdAt: new Date().toISOString()
+  };
+}
+
+/**
+ * Creates a new ChallengeProgress object
+ * @param {string} challengeId
+ * @param {string} userId
+ * @param {number} goalValue
+ * @returns {ChallengeProgress}
+ */
+export function createChallengeProgress(challengeId, userId, goalValue) {
+  return {
+    challengeId,
+    userId,
+    currentValue: 0,
+    goalValue,
+    completed: false,
+    completedAt: null,
+    rank: 0
+  };
+}
