@@ -131,13 +131,36 @@ export default async function handler(req, res) {
           // Use longest streak for leaderboard (or current if longer)
           const streak = Math.max(currentStreak, longestStreak);
 
-          // Get username from stats, data, or use fid
-          const username =
-            stats?.username ||
-            stats?.displayName ||
+          // Get username from data (top level), stats, or try to fetch from Farcaster API
+          let username =
             data?.username ||
             data?.displayName ||
-            `fid:${fid}`;
+            stats?.username ||
+            stats?.displayName;
+
+          // If no username found, try to fetch from Farcaster API
+          if (!username || username.startsWith('fid:')) {
+            try {
+              const farcasterResponse = await fetch(
+                `https://api.farcaster.xyz/v2/user-by-fid?fid=${fid}`
+              );
+              if (farcasterResponse.ok) {
+                const farcasterData = await farcasterResponse.json();
+                if (farcasterData?.result?.user?.username) {
+                  username = `@${farcasterData.result.user.username}`;
+                } else if (farcasterData?.result?.user?.displayName) {
+                  username = farcasterData.result.user.displayName;
+                }
+              }
+            } catch (error) {
+              console.log(`Could not fetch username for fid ${fid}:`, error.message);
+            }
+          }
+
+          // Final fallback to fid
+          if (!username || username.startsWith('fid:')) {
+            username = `fid:${fid}`;
+          }
 
           if (totalPages > 0 || streak > 0) {
             allUsers.push({
