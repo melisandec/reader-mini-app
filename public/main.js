@@ -39,7 +39,21 @@ async function callSdkReady() {
   try {
     // Check if SDK exists and has actions
     if (!sdk) {
-      console.log("SDK not available");
+      console.log("SDK not available in callSdkReady()");
+      // Try window.sdk as fallback (might be injected by Farcaster)
+      if (typeof window !== "undefined" && window.sdk) {
+        console.log("Found SDK in window.sdk, using that");
+        const windowSdk = window.sdk;
+        if (windowSdk.actions && typeof windowSdk.actions.ready === "function") {
+          try {
+            await windowSdk.actions.ready();
+            console.log("SDK ready called successfully via window.sdk");
+            return;
+          } catch (e) {
+            console.error("Failed to call ready via window.sdk:", e);
+          }
+        }
+      }
       return;
     }
 
@@ -50,18 +64,26 @@ async function callSdkReady() {
         console.log("SDK ready called successfully");
       } catch (readyError) {
         // Some platforms (like desktop) might not support ready()
-        // This is okay - the app should still work
-        console.log(
-          "SDK ready() not supported on this platform:",
-          readyError.message
+        // But we should still try - log the error but don't fail silently
+        console.error(
+          "SDK ready() error:",
+          readyError.message,
+          readyError.stack
         );
+        // Re-throw so caller knows it failed
+        throw readyError;
       }
     } else {
-      console.log("SDK actions.ready not available");
+      console.error("SDK actions.ready not available - SDK structure:", {
+        hasSdk: !!sdk,
+        hasActions: !!(sdk && sdk.actions),
+        hasReady: !!(sdk && sdk.actions && typeof sdk.actions.ready === "function")
+      });
     }
   } catch (error) {
-    // Don't let SDK errors break the app
-    console.error("SDK initialization error (non-blocking):", error.message);
+    // Log the error but don't break the app
+    console.error("SDK initialization error:", error.message, error.stack);
+    throw error; // Re-throw so caller can handle it
   }
 }
 
