@@ -9,5 +9,13 @@ export default defineConfig({
   server: {
     port: 3000,
     open: false,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        // For local dev, we'll need to handle API routes differently
+        // This proxy won't work for serverless functions, but helps with CORS
+      },
+    },
   },
 });

@@ -235,9 +235,10 @@ h1 {
 
 .streak-card {
   background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
-  border-radius: 12px;
-  padding: 20px;
-  min-width: 140px;
+  border-radius: 10px;
+  padding: 12px 16px;
+  min-width: 100px;
+  max-width: 120px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -261,8 +262,8 @@ h1 {
 }
 
 .streak-icon {
-  font-size: 32px;
-  margin-bottom: 10px;
+  font-size: 24px;
+  margin-bottom: 6px;
   line-height: 1;
 }
 
@@ -271,7 +272,7 @@ h1 {
 }
 
 .streak-value {
-  font-size: 36px;
+  font-size: 24px;
   font-weight: 700;
   color: white;
   line-height: 1.2;
@@ -293,15 +294,17 @@ h1 {
 
 .coins-card {
   background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 10px;
+  padding: 12px 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 15px;
+  gap: 12px;
   box-shadow: 0 4px 15px rgba(253, 160, 133, 0.3);
   transition: var(--transition);
   animation: fadeInUp 0.6s ease-out 0.25s both;
+  max-width: 200px;
+  margin: 0 auto;
 }
 
 .coins-card:hover {
@@ -310,7 +313,7 @@ h1 {
 }
 
 .coins-icon {
-  font-size: 40px;
+  font-size: 28px;
   line-height: 1;
 }
 
@@ -328,7 +331,7 @@ h1 {
 }
 
 .coins-value {
-  font-size: 32px;
+  font-size: 24px;
   font-weight: 700;
   color: white;
   line-height: 1;
@@ -1987,4 +1990,87 @@ h1 {
   .modal-content {
     padding: 20px;
   }
+
+  .nav-item {
+    padding: 6px 8px;
+  }
+
+  .nav-icon {
+    font-size: 20px;
+  }
+
+  .nav-label {
+    font-size: 10px;
+  }
+}
+
+/* Page Navigation */
+.page-content {
+  display: none;
+}
+
+.page-content.active {
+  display: block;
+}
+
+/* Bottom Navigation */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-card);
+  border-top: 2px solid var(--border-color);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+  z-index: 100;
+  box-shadow: 0 -2px 10px var(--shadow-light);
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: var(--transition);
+  color: var(--text-secondary);
+  flex: 1;
+  max-width: 100px;
+}
+
+.nav-item:hover {
+  color: var(--accent);
+}
+
+.nav-item.active {
+  color: var(--accent);
+}
+
+.nav-item.active .nav-icon {
+  transform: scale(1.1);
+}
+
+.nav-icon {
+  font-size: 24px;
+  line-height: 1;
+  transition: var(--transition);
+}
+
+.nav-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Add padding to dashboard to account for bottom nav */
+.dashboard {
+  padding-bottom: 80px;
 }

@@ -25,6 +25,7 @@
   <body>
     <div id="app">
       <div class="dashboard">
+        <!-- Header (shown on all pages) -->
         <div class="header-section">
           <div class="header-top">
             <h1 id="mainGreeting">Ready to read today? 📚</h1>
@@ -52,7 +53,9 @@
           </div>
         </div>
 
-        <div class="stats-container">
+        <!-- Page: Home -->
+        <div class="page-content active" data-page="home">
+          <div class="stats-container">
           <!-- Coins Display -->
           <div class="coins-section">
             <div class="coins-card">
@@ -280,9 +283,11 @@
             </div>
           </div>
         </div>
+        </div>
 
-        <!-- Challenges Section -->
-        <div class="challenges-section">
+        <!-- Page: Challenges -->
+        <div class="page-content" data-page="challenges">
+          <div class="challenges-section">
           <div class="section-header">
             <h2 class="section-title">Challenges</h2>
             <button class="create-challenge-btn" id="createChallengeBtn">
@@ -296,9 +301,11 @@
             <!-- Challenges will be dynamically inserted here -->
           </div>
         </div>
+        </div>
 
-        <!-- Leaderboard Section -->
-        <div class="leaderboard-section">
+        <!-- Page: Community -->
+        <div class="page-content" data-page="community">
+          <div class="leaderboard-section">
           <h2 class="section-title">Community</h2>
           <div class="leaderboard-tabs">
             <button class="tab-button active" data-tab="streaks">
@@ -319,9 +326,11 @@
             </div>
           </div>
         </div>
+        </div>
 
-        <!-- Reading History Section -->
-        <div class="history-section">
+        <!-- Page: Reading Log -->
+        <div class="page-content" data-page="log">
+          <div class="history-section">
           <h2 class="section-title">Your Reading Log</h2>
           <p class="section-subtitle">
             A gentle reminder of all the stories you've lived
@@ -330,8 +339,30 @@
             <!-- History items will be dynamically inserted here -->
           </div>
         </div>
+        </div>
       </div>
     </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-page="home">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Home</span>
+      </button>
+      <button class="nav-item" data-page="challenges">
+        <span class="nav-icon">🏆</span>
+        <span class="nav-label">Challenges</span>
+      </button>
+      <button class="nav-item" data-page="community">
+        <span class="nav-icon">🌍</span>
+        <span class="nav-label">Community</span>
+      </button>
+      <button class="nav-item" data-page="log">
+        <span class="nav-icon">📚</span>
+        <span class="nav-label">Reading Log</span>
+      </button>
+    </nav>
+
     <script type="module" src="main.js"></script>
   </body>
 </html>

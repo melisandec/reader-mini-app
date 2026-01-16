@@ -808,6 +808,9 @@ function displayStats() {
     // Display charts
     displayCharts();
 
+    // Setup bottom navigation
+    setupBottomNavigation();
+
     // Check and celebrate goal completion
     checkGoalCompletion(stats);
   } catch (error) {
@@ -1506,12 +1509,28 @@ async function displayChallenges() {
 
     // Fetch challenges
     const userId = currentUser?.fid || currentUser?.username;
+    const baseUrl = window.location.hostname === 'localhost' 
+      ? 'https://reader-mini-app.vercel.app' 
+      : '';
     const url = userId
-      ? `/api/challenges?userId=${encodeURIComponent(userId)}`
-      : "/api/challenges";
+      ? `${baseUrl}/api/challenges?userId=${encodeURIComponent(userId)}`
+      : `${baseUrl}/api/challenges`;
+    
     const response = await fetch(url);
 
     if (!response.ok) {
+      // In local dev, API might not be available - show empty state gracefully
+      if (window.location.hostname === 'localhost') {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">🏆</div>
+            <div class="empty-state-title">Challenges coming soon</div>
+            <div class="empty-state-text">API endpoints work in production. Deploy to test challenges!</div>
+          </div>
+        `;
+        setupCreateChallengeButton();
+        return;
+      }
       container.innerHTML =
         '<div class="empty-state"><div class="empty-state-text">Unable to load challenges</div></div>';
       return;
@@ -1562,7 +1581,9 @@ async function displayChallengeCard(challenge, container) {
   if (userId) {
     try {
       const response = await fetch(
-        `/api/challenges?challengeId=${challenge.id}&userId=${encodeURIComponent(userId)}`
+        `/api/challenges?challengeId=${
+          challenge.id
+        }&userId=${encodeURIComponent(userId)}`
       );
       if (response.ok) {
         const data = await response.json();
@@ -1582,7 +1603,9 @@ async function displayChallengeCard(challenge, container) {
     new Date(challenge.endDate) >= new Date();
 
   const challengeCard = document.createElement("div");
-  challengeCard.className = `challenge-card ${isCompleted ? "completed" : ""} ${!isActive ? "inactive" : ""}`;
+  challengeCard.className = `challenge-card ${isCompleted ? "completed" : ""} ${
+    !isActive ? "inactive" : ""
+  }`;
 
   const typeIcon =
     challenge.type === "friend"
@@ -1614,7 +1637,9 @@ async function displayChallengeCard(challenge, container) {
       Goal: ${challenge.goalValue.toLocaleString()} ${goalTypeLabel}
     </div>
     <div class="challenge-dates">
-      ${new Date(challenge.startDate).toLocaleDateString()} - ${new Date(challenge.endDate).toLocaleDateString()}
+      ${new Date(challenge.startDate).toLocaleDateString()} - ${new Date(
+    challenge.endDate
+  ).toLocaleDateString()}
     </div>
     ${
       progress
@@ -1632,7 +1657,9 @@ async function displayChallengeCard(challenge, container) {
         : ""
     }
     <div class="challenge-participants">
-      ${challenge.participants?.length || 0} participant${(challenge.participants?.length || 0) !== 1 ? "s" : ""}
+      ${challenge.participants?.length || 0} participant${
+    (challenge.participants?.length || 0) !== 1 ? "s" : ""
+  }
     </div>
     <div class="challenge-actions">
       ${
@@ -1646,7 +1673,9 @@ async function displayChallengeCard(challenge, container) {
           : ""
       }
       ${
-        challenge.type === "friend" && challenge.createdBy === userId && isActive
+        challenge.type === "friend" &&
+        challenge.createdBy === userId &&
+        isActive
           ? `<button class="challenge-invite-btn" data-challenge-id="${challenge.id}">Invite Friends</button>`
           : ""
       }
@@ -1663,7 +1692,9 @@ async function displayChallengeCard(challenge, container) {
 
   const viewBtn = challengeCard.querySelector(".challenge-view-btn");
   if (viewBtn) {
-    viewBtn.addEventListener("click", () => viewChallengeLeaderboard(challenge.id));
+    viewBtn.addEventListener("click", () =>
+      viewChallengeLeaderboard(challenge.id)
+    );
   }
 
   const inviteBtn = challengeCard.querySelector(".challenge-invite-btn");
@@ -1683,7 +1714,10 @@ async function joinChallenge(challengeId) {
 
   try {
     const userId = currentUser.fid || currentUser.username;
-    const response = await fetch("/api/challenges", {
+    const baseUrl = window.location.hostname === 'localhost' 
+      ? 'https://reader-mini-app.vercel.app' 
+      : '';
+    const response = await fetch(`${baseUrl}/api/challenges`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -1711,8 +1745,11 @@ async function joinChallenge(challengeId) {
  */
 async function viewChallengeLeaderboard(challengeId) {
   try {
+    const baseUrl = window.location.hostname === 'localhost' 
+      ? 'https://reader-mini-app.vercel.app' 
+      : '';
     const response = await fetch(
-      `/api/challenge-leaderboard?challengeId=${challengeId}`
+      `${baseUrl}/api/challenge-leaderboard?challengeId=${challengeId}`
     );
     if (!response.ok) {
       throw new Error("Failed to load leaderboard");
@@ -1766,7 +1803,19 @@ async function viewChallengeLeaderboard(challengeId) {
  */
 async function inviteToChallenge(challenge) {
   try {
-    const shareMessage = `📚 Join me in a reading challenge: "${challenge.title}" - ${challenge.goalValue} ${challenge.goalType === "pages" ? "pages" : challenge.goalType === "minutes" ? "minutes" : "sessions"} by ${new Date(challenge.endDate).toLocaleDateString()}!\n\nJoin: https://reader-mini-app.vercel.app?challenge=${challenge.id}`;
+    const shareMessage = `📚 Join me in a reading challenge: "${
+      challenge.title
+    }" - ${challenge.goalValue} ${
+      challenge.goalType === "pages"
+        ? "pages"
+        : challenge.goalType === "minutes"
+        ? "minutes"
+        : "sessions"
+    } by ${new Date(
+      challenge.endDate
+    ).toLocaleDateString()}!\n\nJoin: https://reader-mini-app.vercel.app?challenge=${
+      challenge.id
+    }`;
 
     await sdk.actions.composeCast({
       text: shareMessage,
@@ -1786,7 +1835,13 @@ function setupCreateChallengeButton() {
   const btn = document.getElementById("createChallengeBtn");
   if (!btn) return;
 
-  btn.addEventListener("click", () => {
+  // Remove existing listeners to avoid duplicates
+  const newBtn = btn.cloneNode(true);
+  btn.parentNode.replaceChild(newBtn, btn);
+
+  newBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     showCreateChallengeModal();
   });
 }
@@ -1887,44 +1942,52 @@ function showCreateChallengeModal() {
   document.body.appendChild(modal);
 
   // Handle form submission
-  modal.querySelector("#createChallengeForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
+  modal
+    .querySelector("#createChallengeForm")
+    .addEventListener("submit", async (e) => {
+      e.preventDefault();
 
-    const userId = currentUser.fid || currentUser.username;
-    const challengeData = {
-      type: modal.querySelector("#challengeType").value,
-      title: modal.querySelector("#challengeTitle").value,
-      description: modal.querySelector("#challengeDescription").value,
-      goalType: modal.querySelector("#challengeGoalType").value,
-      goalValue: parseInt(modal.querySelector("#challengeGoalValue").value, 10),
-      startDate: modal.querySelector("#challengeStartDate").value,
-      endDate: modal.querySelector("#challengeEndDate").value,
-      createdBy: userId,
-      isPublic: modal.querySelector("#challengeIsPublic").checked,
-      rewardCoins: 100,
-    };
+      const userId = currentUser.fid || currentUser.username;
+      const challengeData = {
+        type: modal.querySelector("#challengeType").value,
+        title: modal.querySelector("#challengeTitle").value,
+        description: modal.querySelector("#challengeDescription").value,
+        goalType: modal.querySelector("#challengeGoalType").value,
+        goalValue: parseInt(
+          modal.querySelector("#challengeGoalValue").value,
+          10
+        ),
+        startDate: modal.querySelector("#challengeStartDate").value,
+        endDate: modal.querySelector("#challengeEndDate").value,
+        createdBy: userId,
+        isPublic: modal.querySelector("#challengeIsPublic").checked,
+        rewardCoins: 100,
+      };
 
-    try {
-      const response = await fetch("/api/challenges", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(challengeData),
-      });
+      try {
+        const baseUrl = window.location.hostname === 'localhost' 
+          ? 'https://reader-mini-app.vercel.app' 
+          : '';
+        const response = await fetch(`${baseUrl}/api/challenges`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(challengeData),
+        });
 
-      if (!response.ok) {
-        throw new Error("Failed to create challenge");
+        if (!response.ok) {
+          throw new Error("Failed to create challenge");
+        }
+
+        showNotification("Challenge created! Let's get reading. 📚", 4000);
+        modal.remove();
+        displayChallenges();
+      } catch (error) {
+        console.error("Error creating challenge:", error);
+        showNotification("Couldn't create challenge. Try again? 💙", 4000);
       }
-
-      showNotification("Challenge created! Let's get reading. 📚", 4000);
-      modal.remove();
-      displayChallenges();
-    } catch (error) {
-      console.error("Error creating challenge:", error);
-      showNotification("Couldn't create challenge. Try again? 💙", 4000);
-    }
-  });
+    });
 
   modal.addEventListener("click", (e) => {
     if (e.target === modal) {
@@ -1948,14 +2011,24 @@ async function checkChallengeInvite() {
           try {
             // Check if user is already in challenge
             const response = await fetch(
-              `/api/challenges?challengeId=${challengeId}&userId=${encodeURIComponent(currentUser.fid || currentUser.username)}`
+              `/api/challenges?challengeId=${challengeId}&userId=${encodeURIComponent(
+                currentUser.fid || currentUser.username
+              )}`
             );
             if (response.ok) {
               const data = await response.json();
-              if (data.challenge && !data.challenge.participants?.includes(currentUser.fid || currentUser.username)) {
+              if (
+                data.challenge &&
+                !data.challenge.participants?.includes(
+                  currentUser.fid || currentUser.username
+                )
+              ) {
                 // Auto-join the challenge
                 await joinChallenge(challengeId);
-                showNotification("You've joined the challenge! Welcome. 🎉", 5000);
+                showNotification(
+                  "You've joined the challenge! Welcome. 🎉",
+                  5000
+                );
               }
             }
           } catch (error) {
@@ -1977,7 +2050,9 @@ async function updateChallengeProgress(session) {
 
   try {
     const userId = currentUser.fid || currentUser.username;
-    const response = await fetch(`/api/challenges?userId=${encodeURIComponent(userId)}`);
+    const response = await fetch(
+      `/api/challenges?userId=${encodeURIComponent(userId)}`
+    );
     if (!response.ok) return;
 
     const data = await response.json();
@@ -2006,6 +2081,36 @@ async function updateChallengeProgress(session) {
   } catch (error) {
     console.error("Error updating challenge progress:", error);
   }
+}
+
+/**
+ * Setup bottom navigation
+ */
+function setupBottomNavigation() {
+  const navItems = document.querySelectorAll(".nav-item");
+  const pages = document.querySelectorAll(".page-content");
+
+  navItems.forEach((item) => {
+    item.addEventListener("click", () => {
+      const targetPage = item.getAttribute("data-page");
+
+      // Update active nav item
+      navItems.forEach((nav) => nav.classList.remove("active"));
+      item.classList.add("active");
+
+      // Show target page, hide others
+      pages.forEach((page) => {
+        if (page.getAttribute("data-page") === targetPage) {
+          page.classList.add("active");
+        } else {
+          page.classList.remove("active");
+        }
+      });
+
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  });
 }
 
 /**
