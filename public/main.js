@@ -809,12 +809,12 @@ async function identifyUser() {
     // Try to get user info using quickAuth (recommended method)
     let userInfo = null;
 
-    if (
-      sdk?.quickAuth?.getToken &&
-      typeof sdk.quickAuth.getToken === "function"
-    ) {
+    if (sdk && sdk.quickAuth && typeof sdk.quickAuth.getToken === "function") {
       try {
+        // Add a small delay to ensure SDK is fully initialized
+        await new Promise(resolve => setTimeout(resolve, 200));
         const { token } = await sdk.quickAuth.getToken();
+        console.log("quickAuth.getToken() called in identifyUser, token received:", token ? "yes" : "no");
         if (token) {
           // Decode JWT to get user info
           const payload = JSON.parse(atob(token.split(".")[1]));
@@ -2108,12 +2108,12 @@ async function showCreateChallengeModal() {
     console.log("User not identified, attempting to get user info...");
     try {
       // Try quickAuth.getToken() first (recommended method)
-      if (
-        sdk?.quickAuth?.getToken &&
-        typeof sdk.quickAuth.getToken === "function"
-      ) {
+      if (sdk && sdk.quickAuth && typeof sdk.quickAuth.getToken === "function") {
         try {
+          // Add a small delay to ensure SDK is fully initialized
+          await new Promise(resolve => setTimeout(resolve, 200));
           const { token } = await sdk.quickAuth.getToken();
+          console.log("quickAuth.getToken() called in showCreateChallengeModal, token received:", token ? "yes" : "no");
           if (token) {
             // Decode JWT to get user info
             const payload = JSON.parse(atob(token.split(".")[1]));
