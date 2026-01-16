@@ -111,7 +111,7 @@ function mergeSessions(localSessions, remoteSessions) {
   const seenKeys = new Set(); // Track logical duplicates (date+book+pages+minutes)
 
   // Helper to create a unique key for a session
-  const getSessionKey = (session) => 
+  const getSessionKey = (session) =>
     `${session.date}|${session.bookName}|${session.pagesRead}|${session.minutesRead}`;
 
   // Add remote sessions first

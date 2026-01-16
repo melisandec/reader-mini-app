@@ -106,14 +106,21 @@ export default async function handler(req, res) {
       return;
     }
 
-    // Fetch all user data
-    const allUsers = [];
+    // Fetch all user data and deduplicate by FID
+    const usersByFid = new Map(); // Use Map to deduplicate by FID
+    
     for (const key of keys) {
       try {
         const raw = await client.get(key);
         if (raw) {
           const data = JSON.parse(raw);
           const fid = key.replace("reader:user:", "");
+
+          // Skip if we've already processed this FID (deduplicate)
+          if (usersByFid.has(fid)) {
+            console.log(`Skipping duplicate FID: ${fid} (key: ${key})`);
+            continue;
+          }
 
           // Calculate stats from sessions
           const sessions = Array.isArray(data.sessions) ? data.sessions : [];
@@ -163,7 +170,7 @@ export default async function handler(req, res) {
           }
 
           if (totalPages > 0 || streak > 0) {
-            allUsers.push({
+            usersByFid.set(fid, {
               fid,
               username,
               totalPages,
@@ -176,6 +183,9 @@ export default async function handler(req, res) {
         // Continue with other users
       }
     }
+
+    // Convert Map to array
+    const allUsers = Array.from(usersByFid.values());
 
     // Sort and get top 10 for streaks
     const topStreaks = allUsers

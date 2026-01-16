@@ -19,7 +19,7 @@ function deduplicateSessions(sessions) {
   for (const session of sessions) {
     // Create a unique key for this session
     const key = `${session.date}|${session.bookName}|${session.pagesRead}|${session.minutesRead}`;
-    
+
     // Check if we've seen this exact ID or this logical duplicate
     if (!seen.has(session.id) && !seen.has(key)) {
       seen.set(session.id, true);
@@ -69,22 +69,24 @@ export default async function handler(req, res) {
           return;
         }
         let data = JSON.parse(raw);
-        
+
         // Deduplicate sessions before returning
         if (data.sessions && Array.isArray(data.sessions)) {
           const originalCount = data.sessions.length;
           data.sessions = deduplicateSessions(data.sessions);
           const removedCount = originalCount - data.sessions.length;
-          
+
           if (removedCount > 0) {
-            console.log(`API: Removed ${removedCount} duplicate session(s) for fid=${fid}`);
+            console.log(
+              `API: Removed ${removedCount} duplicate session(s) for fid=${fid}`
+            );
             // Save deduplicated data back to database (async, don't wait)
-            client.set(key, JSON.stringify(data)).catch(err => {
+            client.set(key, JSON.stringify(data)).catch((err) => {
               console.error(`API: Failed to save deduplicated data:`, err);
             });
           }
         }
-        
+
         console.log(
           `API: Returning ${
             data.sessions?.length || 0
@@ -204,10 +206,12 @@ export default async function handler(req, res) {
         // Deduplicate sessions before saving
         const sessions = Array.isArray(body.sessions) ? body.sessions : [];
         const deduplicatedSessions = deduplicateSessions(sessions);
-        
+
         if (sessions.length !== deduplicatedSessions.length) {
           console.log(
-            `API: Deduplicated ${sessions.length - deduplicatedSessions.length} duplicate session(s) before saving for fid=${fid}`
+            `API: Deduplicated ${
+              sessions.length - deduplicatedSessions.length
+            } duplicate session(s) before saving for fid=${fid}`
           );
         }
 
