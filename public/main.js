@@ -39,6 +39,7 @@ async function callSdkReady() {
   try {
     if (sdk?.actions?.ready) {
       await sdk.actions.ready();
+      console.log("SDK ready called successfully");
     }
   } catch (error) {
     console.log("Not in Farcaster context, continuing anyway:", error);
@@ -1857,10 +1858,20 @@ async function showCreateChallengeModal() {
   }
 
   // If still not identified, try signIn only when user explicitly needs it
+  // According to Farcaster SDK docs, signIn requires nonce and acceptAuthAddress
   if (!currentUser?.fid && !currentUser?.username) {
     try {
       if (sdk?.actions?.signIn && typeof sdk.actions.signIn === "function") {
-        await sdk.actions.signIn();
+        // Generate a random nonce (at least 8 alphanumeric characters)
+        const nonce = Math.random().toString(36).substring(2, 15) + 
+                     Math.random().toString(36).substring(2, 15);
+        
+        // Call signIn with required parameters according to SDK docs
+        const result = await sdk.actions.signIn({ 
+          nonce, 
+          acceptAuthAddress: true 
+        });
+        
         // After signIn, get context again
         if (sdk && typeof sdk.context === "function") {
           const context = await sdk.context();
@@ -1877,7 +1888,12 @@ async function showCreateChallengeModal() {
         }
       }
     } catch (error) {
-      console.log("SignIn cancelled or failed:", error.message);
+      console.error("SignIn error:", error);
+      showNotification(
+        "Sign in was cancelled or failed. Please try again.",
+        4000
+      );
+      return; // Don't proceed if signIn failed
     }
   }
 
