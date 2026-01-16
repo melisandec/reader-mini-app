@@ -114,8 +114,14 @@ async function init() {
     console.log("READER app initialized");
   } catch (error) {
     console.error("Error initializing app:", error);
+    console.error("Error stack:", error.stack);
   }
 }
+
+// Add immediate logging when script loads
+console.log("=== MAIN.JS LOADED ===");
+console.log("SDK imported:", typeof sdk !== "undefined");
+console.log("SDK value:", sdk);
 
 let syncTimeout = null;
 let userSyncWatcher = null;
