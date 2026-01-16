@@ -1112,41 +1112,41 @@ h1 {
 
 /* Focus Mode Section */
 .focus-section {
-  margin-top: 40px;
-  padding-top: 30px;
+  margin-top: 30px;
+  padding-top: 20px;
   border-top: 2px solid var(--border-color);
   animation: fadeInUp 0.6s ease-out 0.5s both;
 }
 
 .focus-timer-card {
   background: var(--bg-section);
-  border-radius: 12px;
-  padding: 30px;
+  border-radius: 8px;
+  padding: 16px;
   text-align: center;
   box-shadow: 0 2px 8px var(--shadow-light);
 }
 
 .timer-display {
-  font-size: 48px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--accent);
-  margin-bottom: 25px;
+  margin-bottom: 12px;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
 }
 
 .timer-controls {
   display: flex;
-  gap: 10px;
+  gap: 6px;
   justify-content: center;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .timer-btn {
-  padding: 12px 24px;
+  padding: 6px 12px;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 6px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
@@ -1164,20 +1164,20 @@ h1 {
 }
 
 .timer-session-info {
-  margin-top: 20px;
-  padding-top: 20px;
+  margin-top: 12px;
+  padding-top: 12px;
   border-top: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .timer-book-input,
 .timer-pages-input {
-  padding: 10px;
+  padding: 6px 8px;
   border: 2px solid var(--border-color);
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 6px;
+  font-size: 12px;
   background: var(--bg-card);
   color: var(--text-primary);
   transition: var(--transition);
@@ -1190,12 +1190,12 @@ h1 {
 }
 
 .timer-save-btn {
-  padding: 12px;
+  padding: 6px 12px;
   background: linear-gradient(135deg, var(--accent) 0%, #764ba2 100%);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 6px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
