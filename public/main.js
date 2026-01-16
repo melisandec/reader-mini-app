@@ -654,29 +654,53 @@ async function identifyUser() {
       return;
     }
 
-    // sdk.context is a function - call it to get context
-    let context = null;
-
-    if (typeof sdk.context === "function") {
+    // Try to get user info using quickAuth (recommended method)
+    let userInfo = null;
+    
+    if (sdk?.quickAuth?.getToken && typeof sdk.quickAuth.getToken === "function") {
       try {
-        context = await sdk.context();
+        const { token } = await sdk.quickAuth.getToken();
+        if (token) {
+          // Decode JWT to get user info
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          if (payload.sub) {
+            userInfo = {
+              fid: parseInt(payload.sub, 10),
+              username: payload.username || `fid:${payload.sub}`,
+              displayName: payload.displayName || payload.username || "Reader",
+            };
+          }
+        }
       } catch (e) {
-        // Context might not be available if not in Farcaster context
-        // This is normal - don't log as error
-        // Continue to try signIn below
+        // quickAuth might not be available - continue to try context
       }
-    } else {
-      // SDK context not available
-      // Continue to try signIn below
     }
 
-    // If we got context with user, use it
-    if (context && context.user && context.user.fid) {
+    // Fallback: Try to access context as a property (not a function)
+    let context = null;
+    if (!userInfo && sdk?.context) {
+      try {
+        // Context might be a property, not a function
+        if (typeof sdk.context === "function") {
+          context = await sdk.context();
+        } else {
+          context = sdk.context;
+        }
+      } catch (e) {
+        // Context not available - this is normal
+      }
+    }
+
+    // Use userInfo from quickAuth if available, otherwise use context
+    const user = userInfo || (context?.user);
+    
+    // If we got user info, use it
+    if (user && user.fid) {
       currentUser = {
-        fid: context.user.fid,
-        username: context.user.username || `fid:${context.user.fid}`,
+        fid: user.fid || userInfo?.fid,
+        username: user.username || userInfo?.username || `fid:${user.fid || userInfo?.fid}`,
         displayName:
-          context.user.displayName || context.user.username || "Reader",
+          user.displayName || userInfo?.displayName || user.username || userInfo?.username || "Reader",
       };
       setActiveUserId(currentUser.fid);
 
@@ -1834,47 +1858,38 @@ function setupCreateChallengeButton() {
  * Show create challenge modal
  */
 async function showCreateChallengeModal() {
-  // If user not identified yet, try to identify first (without triggering signIn)
+  // If user not identified yet, try to get user info using quickAuth (recommended)
   if (!currentUser?.fid && !currentUser?.username) {
-    console.log("User not identified, attempting to get context...");
+    console.log("User not identified, attempting to get user info...");
     try {
-      // Try to get context without triggering signIn
-      if (sdk && typeof sdk.context === "function") {
-        const context = await sdk.context();
-        if (context && context.user && context.user.fid) {
-          currentUser = {
-            fid: context.user.fid,
-            username: context.user.username || `fid:${context.user.fid}`,
-            displayName:
-              context.user.displayName || context.user.username || "Reader",
-          };
-          setActiveUserId(currentUser.fid);
-          updateUserDisplay();
+      // Try quickAuth.getToken() first (recommended method)
+      if (sdk?.quickAuth?.getToken && typeof sdk.quickAuth.getToken === "function") {
+        try {
+          const { token } = await sdk.quickAuth.getToken();
+          if (token) {
+            // Decode JWT to get user info
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            if (payload.sub) {
+              currentUser = {
+                fid: parseInt(payload.sub, 10),
+                username: payload.username || `fid:${payload.sub}`,
+                displayName: payload.displayName || payload.username || "Reader",
+              };
+              setActiveUserId(currentUser.fid);
+              updateUserDisplay();
+              console.log("User identified via quickAuth:", currentUser);
+            }
+          }
+        } catch (quickAuthError) {
+          console.log("quickAuth.getToken failed:", quickAuthError.message);
         }
       }
-    } catch (error) {
-      console.log("Error getting context:", error.message);
-    }
-  }
 
-  // If still not identified, try signIn only when user explicitly needs it
-  // According to Farcaster SDK docs, signIn requires nonce and acceptAuthAddress
-  if (!currentUser?.fid && !currentUser?.username) {
-    try {
-      if (sdk?.actions?.signIn && typeof sdk.actions.signIn === "function") {
-        // Generate a random nonce (at least 8 alphanumeric characters)
-        const nonce = Math.random().toString(36).substring(2, 15) + 
-                     Math.random().toString(36).substring(2, 15);
-        
-        // Call signIn with required parameters according to SDK docs
-        const result = await sdk.actions.signIn({ 
-          nonce, 
-          acceptAuthAddress: true 
-        });
-        
-        // After signIn, get context again
-        if (sdk && typeof sdk.context === "function") {
-          const context = await sdk.context();
+      // Fallback: Try to access context as a property (not a function)
+      if (!currentUser?.fid && sdk?.context) {
+        try {
+          // Context might be a property, not a function
+          const context = typeof sdk.context === "function" ? await sdk.context() : sdk.context;
           if (context && context.user && context.user.fid) {
             currentUser = {
               fid: context.user.fid,
@@ -1884,26 +1899,24 @@ async function showCreateChallengeModal() {
             };
             setActiveUserId(currentUser.fid);
             updateUserDisplay();
+            console.log("User identified via context:", currentUser);
           }
+        } catch (contextError) {
+          console.log("Context access failed:", contextError.message);
         }
       }
     } catch (error) {
-      console.error("SignIn error:", error);
-      showNotification(
-        "Sign in was cancelled or failed. Please try again.",
-        4000
-      );
-      return; // Don't proceed if signIn failed
+      console.log("Error getting user info:", error.message);
     }
   }
 
-  // Check again after attempting identification
+  // If still not identified, show message but don't crash
   if (!currentUser?.fid && !currentUser?.username) {
     showNotification(
-      "Unable to identify user. Please try refreshing the app.",
-      4000
+      "Unable to identify user. The app may need to be refreshed, or you may need to sign in through Farcaster.",
+      5000
     );
-    return;
+    return; // Don't show the form if we can't identify the user
   }
 
   const modal = document.createElement("div");
