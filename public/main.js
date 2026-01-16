@@ -22,40 +22,20 @@ import {
   createChallengeProgress,
 } from "./models.js";
 
-// ============================================================================
-// CRITICAL: Call sdk.actions.ready() IMMEDIATELY at module load time
-// This MUST execute before anything else to prevent splash screen hang
-// ============================================================================
-(async function callReadyImmediately() {
+// CRITICAL: Initialize SDK and call ready() immediately
+(async function() {
   try {
-    console.log("=== MODULE LOADED: Attempting sdk.ready() ===");
+    // Initialize SDK first if init() exists
+    if (sdk && typeof sdk.init === "function") {
+      await sdk.init();
+    }
     
-    // Try imported SDK first
-    if (sdk && sdk.actions && typeof sdk.actions.ready === "function") {
-      console.log("=== Calling sdk.actions.ready() from imported SDK ===");
+    // Call ready() immediately
+    if (sdk?.actions?.ready) {
       await sdk.actions.ready();
-      console.log("=== SUCCESS: sdk.ready() called ===");
-      return;
     }
-    
-    // Fallback: Check window.sdk (might be injected by Farcaster)
-    if (typeof window !== "undefined" && window.sdk) {
-      console.log("=== Using window.sdk fallback ===");
-      const winSdk = window.sdk;
-      if (winSdk.actions && typeof winSdk.actions.ready === "function") {
-        await winSdk.actions.ready();
-        console.log("=== SUCCESS: window.sdk.ready() called ===");
-        return;
-      }
-    }
-    
-    console.error("=== FAILED: SDK not available ===", {
-      hasSdk: !!sdk,
-      hasWindowSdk: typeof window !== "undefined" && !!window.sdk,
-      sdkStructure: sdk ? Object.keys(sdk) : null
-    });
-  } catch (error) {
-    console.error("=== ERROR calling sdk.ready() ===", error);
+  } catch (e) {
+    // Silent fail - will retry in init()
   }
 })();
 
@@ -134,35 +114,14 @@ async function callSdkReady() {
 // Initialize the Farcaster Mini App SDK
 async function init() {
   try {
-    console.log("=== APP INIT STARTING ===");
-    console.log("SDK available:", !!sdk);
-    console.log("SDK object:", sdk);
-
-    // Note: sdk.ready() is already called at module top level above
-    // Continue with rest of initialization
-    setTimeout(async () => {
-      console.log("SDK ready completed, checking SDK state...");
-      console.log("sdk exists:", !!sdk);
-      console.log("sdk.quickAuth exists:", !!(sdk && sdk.quickAuth));
-      console.log(
-        "sdk.quickAuth.getToken exists:",
-        !!(sdk && sdk.quickAuth && typeof sdk.quickAuth.getToken === "function")
-      );
-
-      // Wait a bit more for SDK to fully initialize before trying to get user
-      setTimeout(() => {
-        console.log("Starting user identification...");
-        identifyUser().catch((err) => {
-          console.error(
-            "User identification failed (non-blocking):",
-            err.message,
-            err.stack
-          );
-        });
-        console.log("Starting user sync watcher...");
-        startUserSyncWatcher();
-      }, 500);
-    }, 100);
+    // Call ready() again in case top-level call failed
+    await callSdkReady();
+    
+    // Continue with initialization
+    setTimeout(() => {
+      identifyUser().catch(() => {});
+      startUserSyncWatcher();
+    }, 500);
 
     // Initialize dark mode
     initDarkMode();
