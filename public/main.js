@@ -1347,15 +1347,15 @@ async function displayLeaderboard() {
     const { topStreaks, topPages } = await fetchLeaderboardData();
 
     // Mark current user if they're in the leaderboard
-    const currentFid = currentUser?.fid;
-    if (currentFid) {
+    const currentUsername = currentUser?.username || currentUser?.displayName;
+    if (currentUsername) {
       topStreaks.forEach((item) => {
-        if (item.fid === String(currentFid)) {
+        if (item.username === currentUsername) {
           item.isCurrentUser = true;
         }
       });
       topPages.forEach((item) => {
-        if (item.fid === String(currentFid)) {
+        if (item.username === currentUsername) {
           item.isCurrentUser = true;
         }
       });

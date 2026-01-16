@@ -163,7 +163,6 @@ export default async function handler(req, res) {
         rank: index + 1,
         username: user.username,
         streak: user.streak,
-        fid: user.fid,
       }));
 
     // Sort and get top 10 for pages
@@ -175,7 +174,6 @@ export default async function handler(req, res) {
         rank: index + 1,
         username: user.username,
         pages: user.totalPages,
-        fid: user.fid,
       }));
 
     res.status(200).json({ topStreaks, topPages });
