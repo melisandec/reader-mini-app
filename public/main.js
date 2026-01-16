@@ -176,9 +176,14 @@ async function syncUserDataToServer() {
   }
 
   try {
+    const stats = loadStats();
     const payload = {
       sessions: loadSessions(),
-      stats: loadStats(),
+      stats: {
+        ...stats,
+        username: currentUser.username,
+        displayName: currentUser.displayName,
+      },
     };
 
     console.log(
@@ -649,12 +654,12 @@ async function identifyUser() {
           context.user.displayName || context.user.username || "Reader",
       };
       setActiveUserId(currentUser.fid);
-      
+
       // Sync in background - don't block on errors
       syncUserDataFromServer().catch((err) => {
         console.log("Sync failed (non-blocking):", err.message);
       });
-      
+
       console.log("User identified:", currentUser);
       updateUserDisplay();
       return;
@@ -689,12 +694,12 @@ async function identifyUser() {
               context.user.displayName || context.user.username || "Reader",
           };
           setActiveUserId(currentUser.fid);
-          
+
           // Sync in background - don't block on errors
           syncUserDataFromServer().catch((err) => {
             console.log("Sync failed (non-blocking):", err.message);
           });
-          
+
           console.log("User identified after signIn:", currentUser);
           updateUserDisplay();
         }
@@ -1313,65 +1318,48 @@ function displayGlobalComparison(stats) {
 }
 
 /**
- * Generate fake leaderboard data
+ * Fetch real leaderboard data from API
  */
-function generateFakeLeaderboard() {
-  // Generate fake usernames
-  const usernames = [
-    "BookWorm42",
-    "PageTurner",
-    "LiteraryLover",
-    "ReadMaster",
-    "BookishBee",
-    "NovelNerd",
-    "ChapterChaser",
-    "StorySeeker",
-    "Bibliophile",
-    "ReadRocket",
-    "BookBuff",
-    "PagePilot",
-    "ReadRanger",
-    "StoryStar",
-    "BookBoss",
-  ];
-
-  // Generate top streaks (fake data)
-  const topStreaks = Array.from({ length: 10 }, (_, i) => {
-    const randomUsername =
-      usernames[Math.floor(Math.random() * usernames.length)];
+async function fetchLeaderboardData() {
+  try {
+    const response = await fetch("/api/leaderboard");
+    if (!response.ok) {
+      console.log("Failed to fetch leaderboard:", response.status);
+      return { topStreaks: [], topPages: [] };
+    }
+    const data = await response.json();
     return {
-      rank: i + 1,
-      username: randomUsername,
-      streak: Math.floor(Math.random() * 50) + 20 + (10 - i) * 5, // Decreasing streaks
-      isCurrentUser: false,
+      topStreaks: Array.isArray(data.topStreaks) ? data.topStreaks : [],
+      topPages: Array.isArray(data.topPages) ? data.topPages : [],
     };
-  })
-    .sort((a, b) => b.streak - a.streak)
-    .map((item, index) => ({ ...item, rank: index + 1 }));
-
-  // Generate top pages (fake data)
-  const topPages = Array.from({ length: 10 }, (_, i) => {
-    const randomUsername =
-      usernames[Math.floor(Math.random() * usernames.length)];
-    return {
-      rank: i + 1,
-      username: randomUsername,
-      pages: Math.floor(Math.random() * 2000) + 1000 + (10 - i) * 200, // Decreasing pages
-      isCurrentUser: false,
-    };
-  })
-    .sort((a, b) => b.pages - a.pages)
-    .map((item, index) => ({ ...item, rank: index + 1 }));
-
-  return { topStreaks, topPages };
+  } catch (error) {
+    console.error("Error fetching leaderboard:", error);
+    return { topStreaks: [], topPages: [] };
+  }
 }
 
 /**
  * Display leaderboard
  */
-function displayLeaderboard() {
+async function displayLeaderboard() {
   try {
-    const { topStreaks, topPages } = generateFakeLeaderboard();
+    // Fetch real data from API
+    const { topStreaks, topPages } = await fetchLeaderboardData();
+
+    // Mark current user if they're in the leaderboard
+    const currentFid = currentUser?.fid;
+    if (currentFid) {
+      topStreaks.forEach((item) => {
+        if (item.fid === String(currentFid)) {
+          item.isCurrentUser = true;
+        }
+      });
+      topPages.forEach((item) => {
+        if (item.fid === String(currentFid)) {
+          item.isCurrentUser = true;
+        }
+      });
+    }
 
     // Display streaks leaderboard
     displayStreaksLeaderboard(topStreaks);
@@ -1383,6 +1371,10 @@ function displayLeaderboard() {
     setupLeaderboardTabs();
   } catch (error) {
     console.error("Error displaying leaderboard:", error);
+    // Fallback to empty leaderboards on error
+    displayStreaksLeaderboard([]);
+    displayPagesLeaderboard([]);
+    setupLeaderboardTabs();
   }
 }
 
@@ -1394,6 +1386,15 @@ function displayStreaksLeaderboard(data) {
   if (!container) return;
 
   container.innerHTML = "";
+
+  if (!data || data.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-text">No streaks yet. Be the first! 🔥</div>
+      </div>
+    `;
+    return;
+  }
 
   data.forEach((item) => {
     const leaderboardItem = document.createElement("div");
@@ -1425,6 +1426,15 @@ function displayPagesLeaderboard(data) {
   if (!container) return;
 
   container.innerHTML = "";
+
+  if (!data || data.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-text">No pages read yet. Start reading! 📚</div>
+      </div>
+    `;
+    return;
+  }
 
   data.forEach((item) => {
     const leaderboardItem = document.createElement("div");
