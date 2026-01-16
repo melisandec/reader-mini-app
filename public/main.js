@@ -22,6 +22,43 @@ import {
   createChallengeProgress,
 } from "./models.js";
 
+// ============================================================================
+// CRITICAL: Call sdk.actions.ready() IMMEDIATELY at module load time
+// This MUST execute before anything else to prevent splash screen hang
+// ============================================================================
+(async function callReadyImmediately() {
+  try {
+    console.log("=== MODULE LOADED: Attempting sdk.ready() ===");
+    
+    // Try imported SDK first
+    if (sdk && sdk.actions && typeof sdk.actions.ready === "function") {
+      console.log("=== Calling sdk.actions.ready() from imported SDK ===");
+      await sdk.actions.ready();
+      console.log("=== SUCCESS: sdk.ready() called ===");
+      return;
+    }
+    
+    // Fallback: Check window.sdk (might be injected by Farcaster)
+    if (typeof window !== "undefined" && window.sdk) {
+      console.log("=== Using window.sdk fallback ===");
+      const winSdk = window.sdk;
+      if (winSdk.actions && typeof winSdk.actions.ready === "function") {
+        await winSdk.actions.ready();
+        console.log("=== SUCCESS: window.sdk.ready() called ===");
+        return;
+      }
+    }
+    
+    console.error("=== FAILED: SDK not available ===", {
+      hasSdk: !!sdk,
+      hasWindowSdk: typeof window !== "undefined" && !!window.sdk,
+      sdkStructure: sdk ? Object.keys(sdk) : null
+    });
+  } catch (error) {
+    console.error("=== ERROR calling sdk.ready() ===", error);
+  }
+})();
+
 // Global user state
 let currentUser = null;
 
@@ -44,7 +81,10 @@ async function callSdkReady() {
       if (typeof window !== "undefined" && window.sdk) {
         console.log("Found SDK in window.sdk, using that");
         const windowSdk = window.sdk;
-        if (windowSdk.actions && typeof windowSdk.actions.ready === "function") {
+        if (
+          windowSdk.actions &&
+          typeof windowSdk.actions.ready === "function"
+        ) {
           try {
             await windowSdk.actions.ready();
             console.log("SDK ready called successfully via window.sdk");
@@ -77,7 +117,11 @@ async function callSdkReady() {
       console.error("SDK actions.ready not available - SDK structure:", {
         hasSdk: !!sdk,
         hasActions: !!(sdk && sdk.actions),
-        hasReady: !!(sdk && sdk.actions && typeof sdk.actions.ready === "function")
+        hasReady: !!(
+          sdk &&
+          sdk.actions &&
+          typeof sdk.actions.ready === "function"
+        ),
       });
     }
   } catch (error) {

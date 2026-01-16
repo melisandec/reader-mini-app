@@ -21,6 +21,45 @@
     <title>READER - Daily Reading Tracker</title>
     <link rel="stylesheet" href="styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- CRITICAL: Inline script to call sdk.ready() if module fails to load -->
+    <script>
+      console.log("=== INLINE SCRIPT: Starting ===");
+      
+      // Poll for SDK and call ready() as soon as it's available
+      let attempts = 0;
+      const maxAttempts = 50; // 5 seconds max
+      
+      const tryCallReady = setInterval(async () => {
+        attempts++;
+        console.log(`=== INLINE: Attempt ${attempts} to find SDK ===`);
+        
+        // Check multiple possible SDK locations
+        let foundSdk = null;
+        
+        if (window.sdk && window.sdk.actions && typeof window.sdk.actions.ready === "function") {
+          foundSdk = window.sdk;
+          console.log("=== INLINE: Found SDK in window.sdk ===");
+        } else if (window.farcasterSdk && window.farcasterSdk.actions && typeof window.farcasterSdk.actions.ready === "function") {
+          foundSdk = window.farcasterSdk;
+          console.log("=== INLINE: Found SDK in window.farcasterSdk ===");
+        }
+        
+        if (foundSdk) {
+          clearInterval(tryCallReady);
+          try {
+            console.log("=== INLINE: Calling sdk.ready() ===");
+            await foundSdk.actions.ready();
+            console.log("=== INLINE: sdk.ready() SUCCESS ===");
+          } catch (e) {
+            console.error("=== INLINE: sdk.ready() ERROR ===", e);
+          }
+        } else if (attempts >= maxAttempts) {
+          clearInterval(tryCallReady);
+          console.error("=== INLINE: Gave up after", maxAttempts, "attempts ===");
+        }
+      }, 100);
+    </script>
   </head>
   <body>
     <div id="app">
