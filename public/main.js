@@ -1509,18 +1509,19 @@ async function displayChallenges() {
 
     // Fetch challenges
     const userId = currentUser?.fid || currentUser?.username;
-    const baseUrl = window.location.hostname === 'localhost' 
-      ? 'https://reader-mini-app.vercel.app' 
-      : '';
+    const baseUrl =
+      window.location.hostname === "localhost"
+        ? "https://reader-mini-app.vercel.app"
+        : "";
     const url = userId
       ? `${baseUrl}/api/challenges?userId=${encodeURIComponent(userId)}`
       : `${baseUrl}/api/challenges`;
-    
+
     const response = await fetch(url);
 
     if (!response.ok) {
       // In local dev, API might not be available - show empty state gracefully
-      if (window.location.hostname === 'localhost') {
+      if (window.location.hostname === "localhost") {
         container.innerHTML = `
           <div class="empty-state">
             <div class="empty-state-icon">🏆</div>
@@ -1714,9 +1715,10 @@ async function joinChallenge(challengeId) {
 
   try {
     const userId = currentUser.fid || currentUser.username;
-    const baseUrl = window.location.hostname === 'localhost' 
-      ? 'https://reader-mini-app.vercel.app' 
-      : '';
+    const baseUrl =
+      window.location.hostname === "localhost"
+        ? "https://reader-mini-app.vercel.app"
+        : "";
     const response = await fetch(`${baseUrl}/api/challenges`, {
       method: "PUT",
       headers: {
@@ -1745,9 +1747,10 @@ async function joinChallenge(challengeId) {
  */
 async function viewChallengeLeaderboard(challengeId) {
   try {
-    const baseUrl = window.location.hostname === 'localhost' 
-      ? 'https://reader-mini-app.vercel.app' 
-      : '';
+    const baseUrl =
+      window.location.hostname === "localhost"
+        ? "https://reader-mini-app.vercel.app"
+        : "";
     const response = await fetch(
       `${baseUrl}/api/challenge-leaderboard?challengeId=${challengeId}`
     );
@@ -1965,9 +1968,10 @@ function showCreateChallengeModal() {
       };
 
       try {
-        const baseUrl = window.location.hostname === 'localhost' 
-          ? 'https://reader-mini-app.vercel.app' 
-          : '';
+        const baseUrl =
+          window.location.hostname === "localhost"
+            ? "https://reader-mini-app.vercel.app"
+            : "";
         const response = await fetch(`${baseUrl}/api/challenges`, {
           method: "POST",
           headers: {
