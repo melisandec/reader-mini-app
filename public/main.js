@@ -656,13 +656,16 @@ async function identifyUser() {
 
     // Try to get user info using quickAuth (recommended method)
     let userInfo = null;
-    
-    if (sdk?.quickAuth?.getToken && typeof sdk.quickAuth.getToken === "function") {
+
+    if (
+      sdk?.quickAuth?.getToken &&
+      typeof sdk.quickAuth.getToken === "function"
+    ) {
       try {
         const { token } = await sdk.quickAuth.getToken();
         if (token) {
           // Decode JWT to get user info
-          const payload = JSON.parse(atob(token.split('.')[1]));
+          const payload = JSON.parse(atob(token.split(".")[1]));
           if (payload.sub) {
             userInfo = {
               fid: parseInt(payload.sub, 10),
@@ -692,15 +695,22 @@ async function identifyUser() {
     }
 
     // Use userInfo from quickAuth if available, otherwise use context
-    const user = userInfo || (context?.user);
-    
+    const user = userInfo || context?.user;
+
     // If we got user info, use it
     if (user && user.fid) {
       currentUser = {
         fid: user.fid || userInfo?.fid,
-        username: user.username || userInfo?.username || `fid:${user.fid || userInfo?.fid}`,
+        username:
+          user.username ||
+          userInfo?.username ||
+          `fid:${user.fid || userInfo?.fid}`,
         displayName:
-          user.displayName || userInfo?.displayName || user.username || userInfo?.username || "Reader",
+          user.displayName ||
+          userInfo?.displayName ||
+          user.username ||
+          userInfo?.username ||
+          "Reader",
       };
       setActiveUserId(currentUser.fid);
 
@@ -736,8 +746,18 @@ function updateUserDisplay() {
   if (currentUser) {
     const userDisplay = document.getElementById("userDisplay");
     if (userDisplay) {
-      userDisplay.textContent = `👤 ${currentUser.displayName}`;
+      // Show username or displayName, prefer username
+      const displayText = currentUser.username || currentUser.displayName || `fid:${currentUser.fid}`;
+      // Remove @ if it's already there, then add it
+      const username = displayText.startsWith('@') ? displayText : `@${displayText.replace('@', '')}`;
+      userDisplay.textContent = username;
       userDisplay.style.display = "block";
+    }
+  } else {
+    // Hide if no user
+    const userDisplay = document.getElementById("userDisplay");
+    if (userDisplay) {
+      userDisplay.style.display = "none";
     }
   }
 }
@@ -1863,17 +1883,21 @@ async function showCreateChallengeModal() {
     console.log("User not identified, attempting to get user info...");
     try {
       // Try quickAuth.getToken() first (recommended method)
-      if (sdk?.quickAuth?.getToken && typeof sdk.quickAuth.getToken === "function") {
+      if (
+        sdk?.quickAuth?.getToken &&
+        typeof sdk.quickAuth.getToken === "function"
+      ) {
         try {
           const { token } = await sdk.quickAuth.getToken();
           if (token) {
             // Decode JWT to get user info
-            const payload = JSON.parse(atob(token.split('.')[1]));
+            const payload = JSON.parse(atob(token.split(".")[1]));
             if (payload.sub) {
               currentUser = {
                 fid: parseInt(payload.sub, 10),
                 username: payload.username || `fid:${payload.sub}`,
-                displayName: payload.displayName || payload.username || "Reader",
+                displayName:
+                  payload.displayName || payload.username || "Reader",
               };
               setActiveUserId(currentUser.fid);
               updateUserDisplay();
@@ -1889,7 +1913,10 @@ async function showCreateChallengeModal() {
       if (!currentUser?.fid && sdk?.context) {
         try {
           // Context might be a property, not a function
-          const context = typeof sdk.context === "function" ? await sdk.context() : sdk.context;
+          const context =
+            typeof sdk.context === "function"
+              ? await sdk.context()
+              : sdk.context;
           if (context && context.user && context.user.fid) {
             currentUser = {
               fid: context.user.fid,
