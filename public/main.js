@@ -271,7 +271,9 @@ function startUserSyncWatcher() {
             // Always try to fetch from API to ensure we have the latest username
             if (fid) {
               try {
-                console.log(`Fetching username for fid=${fid} from Farcaster API...`);
+                console.log(
+                  `Fetching username for fid=${fid} from Farcaster API...`
+                );
                 const farcasterResponse = await fetch(
                   `https://api.farcaster.xyz/v2/user-by-fid?fid=${fid}`
                 );
@@ -280,17 +282,26 @@ function startUserSyncWatcher() {
                   console.log("Farcaster API response:", farcasterData);
                   if (farcasterData?.result?.user) {
                     username = farcasterData.result.user.username || username;
-                    displayName = farcasterData.result.user.displayName || displayName || username;
-                    console.log(`Fetched username: ${username}, displayName: ${displayName}`);
+                    displayName =
+                      farcasterData.result.user.displayName ||
+                      displayName ||
+                      username;
+                    console.log(
+                      `Fetched username: ${username}, displayName: ${displayName}`
+                    );
                   }
                 }
               } catch (apiError) {
-                console.error("Could not fetch username from API:", apiError.message);
+                console.error(
+                  "Could not fetch username from API:",
+                  apiError.message
+                );
               }
             }
 
             // Only use fid fallback if we truly don't have a username
-            const finalUsername = username && username !== `fid:${fid}` ? username : null;
+            const finalUsername =
+              username && username !== `fid:${fid}` ? username : null;
 
             currentUser = {
               fid,
@@ -759,7 +770,9 @@ async function identifyUser() {
             // Always try to fetch from API to ensure we have the latest username
             if (fid) {
               try {
-                console.log(`Fetching username for fid=${fid} from Farcaster API...`);
+                console.log(
+                  `Fetching username for fid=${fid} from Farcaster API...`
+                );
                 const farcasterResponse = await fetch(
                   `https://api.farcaster.xyz/v2/user-by-fid?fid=${fid}`
                 );
@@ -768,11 +781,18 @@ async function identifyUser() {
                   console.log("Farcaster API response:", farcasterData);
                   if (farcasterData?.result?.user) {
                     username = farcasterData.result.user.username || username;
-                    displayName = farcasterData.result.user.displayName || displayName || username;
-                    console.log(`Fetched username: ${username}, displayName: ${displayName}`);
+                    displayName =
+                      farcasterData.result.user.displayName ||
+                      displayName ||
+                      username;
+                    console.log(
+                      `Fetched username: ${username}, displayName: ${displayName}`
+                    );
                   }
                 } else {
-                  console.log(`API response not OK: ${farcasterResponse.status}`);
+                  console.log(
+                    `API response not OK: ${farcasterResponse.status}`
+                  );
                 }
               } catch (apiError) {
                 console.error(
@@ -783,14 +803,15 @@ async function identifyUser() {
             }
 
             // Only use fid fallback if we truly don't have a username
-            const finalUsername = username && username !== `fid:${fid}` ? username : null;
-            
+            const finalUsername =
+              username && username !== `fid:${fid}` ? username : null;
+
             userInfo = {
               fid,
               username: finalUsername || `fid:${fid}`,
               displayName: displayName || finalUsername || "Reader",
             };
-            
+
             console.log("Final userInfo:", userInfo);
           }
         }
@@ -2028,7 +2049,9 @@ async function showCreateChallengeModal() {
               // Always try to fetch from API to ensure we have the latest username
               if (fid) {
                 try {
-                  console.log(`Fetching username for fid=${fid} from Farcaster API...`);
+                  console.log(
+                    `Fetching username for fid=${fid} from Farcaster API...`
+                  );
                   const farcasterResponse = await fetch(
                     `https://api.farcaster.xyz/v2/user-by-fid?fid=${fid}`
                   );
@@ -2038,8 +2061,12 @@ async function showCreateChallengeModal() {
                     if (farcasterData?.result?.user) {
                       username = farcasterData.result.user.username || username;
                       displayName =
-                        farcasterData.result.user.displayName || displayName || username;
-                      console.log(`Fetched username: ${username}, displayName: ${displayName}`);
+                        farcasterData.result.user.displayName ||
+                        displayName ||
+                        username;
+                      console.log(
+                        `Fetched username: ${username}, displayName: ${displayName}`
+                      );
                     }
                   }
                 } catch (apiError) {
@@ -2051,7 +2078,8 @@ async function showCreateChallengeModal() {
               }
 
               // Only use fid fallback if we truly don't have a username
-              const finalUsername = username && username !== `fid:${fid}` ? username : null;
+              const finalUsername =
+                username && username !== `fid:${fid}` ? username : null;
 
               currentUser = {
                 fid,
