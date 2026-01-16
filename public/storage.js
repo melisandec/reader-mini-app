@@ -97,6 +97,23 @@ export function saveSession(session) {
     const sessions = loadSessions();
     const wasFirstSession = sessions.length === 0;
     
+    // Check for duplicates before adding
+    const sessionKey = `${session.date}|${session.bookName}|${session.pagesRead}|${session.minutesRead}`;
+    const isDuplicate = sessions.some(s => 
+      s.id === session.id || 
+      `${s.date}|${s.bookName}|${s.pagesRead}|${s.minutesRead}` === sessionKey
+    );
+    
+    if (isDuplicate) {
+      console.log('Duplicate session detected, skipping save:', session);
+      return {
+        success: false,
+        coinsEarned: 0,
+        newBadges: [],
+        message: 'This session already exists'
+      };
+    }
+    
     sessions.push(session);
     
     // Sort by date (newest first)

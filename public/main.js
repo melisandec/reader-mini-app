@@ -108,16 +108,33 @@ function mergeSessions(localSessions, remoteSessions) {
   const remoteIds = new Set(remoteSessions.map((s) => s.id));
   const localHasNew = localSessions.some((s) => !remoteIds.has(s.id));
   const mergedMap = new Map();
+  const seenKeys = new Set(); // Track logical duplicates (date+book+pages+minutes)
 
+  // Helper to create a unique key for a session
+  const getSessionKey = (session) => 
+    `${session.date}|${session.bookName}|${session.pagesRead}|${session.minutesRead}`;
+
+  // Add remote sessions first
   remoteSessions.forEach((session) => {
     if (session && session.id) {
-      mergedMap.set(session.id, session);
+      const key = getSessionKey(session);
+      // Only add if we haven't seen this ID or this logical duplicate
+      if (!seenKeys.has(key)) {
+        mergedMap.set(session.id, session);
+        seenKeys.add(key);
+      }
     }
   });
 
+  // Add local sessions that don't exist in remote
   localSessions.forEach((session) => {
-    if (session && session.id && !mergedMap.has(session.id)) {
-      mergedMap.set(session.id, session);
+    if (session && session.id) {
+      const key = getSessionKey(session);
+      // Only add if ID doesn't exist and logical key doesn't exist
+      if (!mergedMap.has(session.id) && !seenKeys.has(key)) {
+        mergedMap.set(session.id, session);
+        seenKeys.add(key);
+      }
     }
   });
 
