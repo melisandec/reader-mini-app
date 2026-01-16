@@ -138,25 +138,7 @@ async function init() {
     console.log("SDK available:", !!sdk);
     console.log("SDK object:", sdk);
 
-    // CRITICAL: Call sdk.actions.ready() IMMEDIATELY to hide splash screen
-    // Don't delay this - it's blocking the app from loading
-    console.log("=== CALLING SDK.READY() IMMEDIATELY ===");
-    try {
-      await callSdkReady();
-      console.log("=== SDK.READY() CALLED SUCCESSFULLY ===");
-    } catch (readyError) {
-      console.error("=== SDK.READY() FAILED ===", readyError);
-      // Try again after a short delay
-      setTimeout(async () => {
-        try {
-          await callSdkReady();
-          console.log("=== SDK.READY() CALLED ON RETRY ===");
-        } catch (e) {
-          console.error("=== SDK.READY() FAILED ON RETRY ===", e);
-        }
-      }, 200);
-    }
-
+    // Note: sdk.ready() is already called at module top level above
     // Continue with rest of initialization
     setTimeout(async () => {
       console.log("SDK ready completed, checking SDK state...");
