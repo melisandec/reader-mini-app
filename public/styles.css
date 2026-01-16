@@ -1118,6 +1118,10 @@ h1 {
   animation: fadeInUp 0.6s ease-out 0.5s both;
 }
 
+.focus-section .section-subtitle {
+  margin-bottom: 20px;
+}
+
 .focus-timer-card {
   background: var(--bg-section);
   border-radius: 8px;
@@ -1164,12 +1168,12 @@ h1 {
 }
 
 .timer-session-info {
-  margin-top: 12px;
-  padding-top: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
   border-top: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .timer-book-input,
@@ -1199,6 +1203,7 @@ h1 {
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
+  margin-top: 4px;
 }
 
 .timer-save-btn:hover {
