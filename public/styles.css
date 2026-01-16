@@ -45,7 +45,9 @@ body {
   align-items: center;
   justify-content: center;
   padding: 20px;
-  padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  padding: max(20px, env(safe-area-inset-top))
+    max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom))
+    max(20px, env(safe-area-inset-left));
   transition: var(--transition);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
@@ -80,7 +82,8 @@ body {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -188,7 +191,7 @@ h1 {
 }
 
 .share-button::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
   left: 50%;
@@ -228,15 +231,14 @@ h1 {
 
 .stats-row {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .streak-section {
   display: flex;
   gap: 8px;
-  flex: 1;
 }
 
 .streak-card {
@@ -248,8 +250,8 @@ h1 {
   gap: 6px;
   box-shadow: 0 2px 8px rgba(238, 90, 111, 0.3);
   transition: var(--transition);
-  flex: 1;
-  min-width: 0;
+  min-width: 90px;
+  width: 90px;
 }
 
 .streak-card:nth-child(2) {
@@ -307,6 +309,7 @@ h1 {
   box-shadow: 0 2px 8px rgba(253, 160, 133, 0.3);
   transition: var(--transition);
   min-width: 90px;
+  width: 90px;
 }
 
 .coins-card:hover {
@@ -546,9 +549,15 @@ h1 {
   animation-fill-mode: both;
 }
 
-.leaderboard-item:nth-child(1) { animation-delay: 0.1s; }
-.leaderboard-item:nth-child(2) { animation-delay: 0.15s; }
-.leaderboard-item:nth-child(3) { animation-delay: 0.2s; }
+.leaderboard-item:nth-child(1) {
+  animation-delay: 0.1s;
+}
+.leaderboard-item:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.leaderboard-item:nth-child(3) {
+  animation-delay: 0.2s;
+}
 
 .leaderboard-item:hover {
   background: var(--bg-card);
@@ -558,7 +567,11 @@ h1 {
 }
 
 .leaderboard-item.current-user {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(102, 126, 234, 0.1) 0%,
+    rgba(118, 75, 162, 0.1) 100%
+  );
   border-color: #667eea;
 }
 
@@ -609,20 +622,14 @@ h1 {
     text-align: center;
   }
 
-  .stats-row {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
   .streak-section {
     gap: 6px;
-    flex: 1 1 auto;
-    min-width: 0;
   }
 
   .streak-card {
     padding: 5px 8px;
-    min-width: 0;
+    min-width: 80px;
+    width: 80px;
   }
 
   .streak-value {
@@ -636,6 +643,7 @@ h1 {
   .coins-card {
     padding: 5px 8px;
     min-width: 80px;
+    width: 80px;
   }
 
   .coins-icon {
@@ -797,11 +805,21 @@ h1 {
   animation-fill-mode: both;
 }
 
-.history-item:nth-child(1) { animation-delay: 0.1s; }
-.history-item:nth-child(2) { animation-delay: 0.15s; }
-.history-item:nth-child(3) { animation-delay: 0.2s; }
-.history-item:nth-child(4) { animation-delay: 0.25s; }
-.history-item:nth-child(5) { animation-delay: 0.3s; }
+.history-item:nth-child(1) {
+  animation-delay: 0.1s;
+}
+.history-item:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.history-item:nth-child(3) {
+  animation-delay: 0.2s;
+}
+.history-item:nth-child(4) {
+  animation-delay: 0.25s;
+}
+.history-item:nth-child(5) {
+  animation-delay: 0.3s;
+}
 
 .history-item:hover {
   background: var(--bg-card);
@@ -1609,7 +1627,11 @@ h1 {
 
 .challenge-card.completed {
   border-color: #10b981;
-  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(16, 185, 129, 0.05) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--bg-card) 0%,
+    rgba(16, 185, 129, 0.05) 100%
+  );
 }
 
 .challenge-card.inactive {
