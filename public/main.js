@@ -43,12 +43,36 @@ import {
   // Catch unhandled promise rejections from SDK (like embedded-wallets errors)
   window.addEventListener("unhandledrejection", (event) => {
     const message = event.reason?.message || String(event.reason || "");
+    const errorString = String(event.reason || "");
+    
+    // Prevent these errors from blocking the app
     if (
       message.includes("Invalid JSON message received") ||
-      message.includes("embedded-wallets")
+      message.includes("embedded-wallets") ||
+      message.includes("message channel closed") ||
+      errorString.includes("message channel closed") ||
+      errorString.includes("asynchronous response")
     ) {
-      // Prevent these errors from blocking the app
+      console.log("Suppressed SDK communication error (non-blocking):", message);
       event.preventDefault();
+      
+      // If SDK communication fails, force show content immediately
+      setTimeout(() => {
+        forceShowContent();
+        // Try to hide any splash screen
+        try {
+          const splash = document.querySelector("[data-splash]") ||
+                        document.querySelector(".splash") ||
+                        document.querySelector('[class*="splash"]') ||
+                        document.querySelector('[id*="splash"]');
+          if (splash) {
+            splash.style.display = "none";
+            splash.style.visibility = "hidden";
+            splash.style.opacity = "0";
+            splash.style.pointerEvents = "none";
+          }
+        } catch (e) {}
+      }, 100);
       return;
     }
   });
@@ -83,16 +107,29 @@ import {
             "=== SDK ready() completed - splash screen should hide ==="
           );
         } catch (readyError) {
-          // Check if it's an embedded-wallets error
+          // Check if it's a known harmless error
           const errorMsg = readyError?.message || String(readyError || "");
-          if (
-            !errorMsg.includes("embedded-wallets") &&
-            !errorMsg.includes("Invalid JSON")
-          ) {
+          const errorString = String(readyError || "");
+          
+          // These are communication errors that don't affect functionality
+          const isHarmlessError = 
+            errorMsg.includes("embedded-wallets") ||
+            errorMsg.includes("Invalid JSON") ||
+            errorMsg.includes("message channel closed") ||
+            errorString.includes("message channel closed") ||
+            errorString.includes("asynchronous response");
+          
+          if (!isHarmlessError) {
             console.error(
               "=== SDK ready() error (will retry in init()):",
               errorMsg
             );
+          } else {
+            console.log("=== SDK ready() communication error (non-blocking):", errorMsg);
+            // Force show content if SDK communication fails
+            setTimeout(() => {
+              forceShowContent();
+            }, 200);
           }
           // Don't throw - let init() retry
         }
@@ -121,13 +158,14 @@ import {
       setTimeout(() => {
         forceShowContent();
         // Try to hide splash screen manually
-        const splash = document.querySelector('[data-splash]') || 
-                      document.querySelector('.splash') ||
-                      document.querySelector('[class*="splash"]');
+        const splash =
+          document.querySelector("[data-splash]") ||
+          document.querySelector(".splash") ||
+          document.querySelector('[class*="splash"]');
         if (splash) {
-          splash.style.display = 'none';
-          splash.style.visibility = 'hidden';
-          splash.style.opacity = '0';
+          splash.style.display = "none";
+          splash.style.visibility = "hidden";
+          splash.style.opacity = "0";
         }
       }, 100);
     }
@@ -165,14 +203,31 @@ async function callSdkReady() {
         console.log("=== callSdkReady: SUCCESS ===");
         return true;
       } catch (e) {
-        // Ignore embedded-wallets JSON errors (harmless SDK internal errors)
-        if (
-          !e.message?.includes("embedded-wallets") &&
-          !e.message?.includes("Invalid JSON") &&
-          !e.stack?.includes("embedded-wallets")
-        ) {
-          console.error("=== callSdkReady: Error calling ready():", e.message);
+        // Check if it's a known harmless error
+        const errorMsg = e?.message || String(e || "");
+        const errorString = String(e || "");
+        const errorStack = e?.stack || "";
+        
+        // These are communication errors that don't affect functionality
+        const isHarmlessError = 
+          errorMsg.includes("embedded-wallets") ||
+          errorMsg.includes("Invalid JSON") ||
+          errorMsg.includes("message channel closed") ||
+          errorString.includes("message channel closed") ||
+          errorString.includes("asynchronous response") ||
+          errorStack.includes("embedded-wallets");
+        
+        if (!isHarmlessError) {
+          console.error("=== callSdkReady: Error calling ready():", errorMsg);
+        } else {
+          console.log("=== callSdkReady: Communication error (non-blocking):", errorMsg);
         }
+        
+        // Force show content if SDK communication fails
+        setTimeout(() => {
+          forceShowContent();
+        }, 200);
+        
         // Return false but don't throw
         return false;
       }
@@ -186,27 +241,28 @@ async function callSdkReady() {
     maxAttempts,
     "attempts - will force show content ==="
   );
-  
+
   // Force show content if SDK ready() fails
   setTimeout(() => {
     forceShowContent();
     // Try to hide splash screen manually
     try {
-      const splash = document.querySelector('[data-splash]') || 
-                    document.querySelector('.splash') ||
-                    document.querySelector('[class*="splash"]') ||
-                    document.querySelector('[id*="splash"]');
+      const splash =
+        document.querySelector("[data-splash]") ||
+        document.querySelector(".splash") ||
+        document.querySelector('[class*="splash"]') ||
+        document.querySelector('[id*="splash"]');
       if (splash) {
-        splash.style.display = 'none';
-        splash.style.visibility = 'hidden';
-        splash.style.opacity = '0';
-        splash.style.pointerEvents = 'none';
+        splash.style.display = "none";
+        splash.style.visibility = "hidden";
+        splash.style.opacity = "0";
+        splash.style.pointerEvents = "none";
       }
     } catch (e) {
       console.log("Could not manually hide splash:", e);
     }
   }, 500);
-  
+
   return false;
 }
 
@@ -245,21 +301,25 @@ async function init() {
 
     // Call ready() again in case top-level call failed
     // Don't await - make it non-blocking so app can render
-    callSdkReady().then((success) => {
-      if (!success) {
-        console.log("=== INIT: SDK ready() failed, forcing content visibility ===");
-        // Force show content after a short delay if ready() failed
+    callSdkReady()
+      .then((success) => {
+        if (!success) {
+          console.log(
+            "=== INIT: SDK ready() failed, forcing content visibility ==="
+          );
+          // Force show content after a short delay if ready() failed
+          setTimeout(() => {
+            forceShowContent();
+          }, 1000);
+        }
+      })
+      .catch((err) => {
+        console.log("SDK ready() failed (non-blocking):", err.message);
+        // Force show content on error
         setTimeout(() => {
           forceShowContent();
         }, 1000);
-      }
-    }).catch((err) => {
-      console.log("SDK ready() failed (non-blocking):", err.message);
-      // Force show content on error
-      setTimeout(() => {
-        forceShowContent();
-      }, 1000);
-    });
+      });
 
     // Initialize dark mode FIRST so content is visible
     try {
