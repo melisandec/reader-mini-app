@@ -57,16 +57,28 @@ window.addEventListener("unhandledrejection", (event) => {
 });
 
 // SIMPLE: Try to call ready() immediately, then poll if needed
+// Also check window.sdk in case SDK is injected there
 async function tryCallReady() {
-  if (sdk && sdk.actions && typeof sdk.actions.ready === "function") {
+  // Check both sdk (imported) and window.sdk (injected)
+  const sdkToUse = sdk || window.sdk;
+
+  if (
+    sdkToUse &&
+    sdkToUse.actions &&
+    typeof sdkToUse.actions.ready === "function"
+  ) {
     try {
       console.log("=== CALLING SDK.ACTIONS.READY() IMMEDIATELY ===");
-      await sdk.actions.ready();
+      console.log("SDK source:", sdk ? "imported" : "window.sdk");
+      await sdkToUse.actions.ready();
       console.log("=== SDK.ACTIONS.READY() SUCCESS ===");
       window.__sdkReadyCalled = true;
       return true;
     } catch (error) {
-      console.log("=== SDK.ACTIONS.READY() ERROR (non-blocking):", error.message);
+      console.log(
+        "=== SDK.ACTIONS.READY() ERROR (non-blocking):",
+        error.message
+      );
       window.__sdkReadyCalled = true; // Mark as attempted
       return false;
     }
@@ -77,23 +89,37 @@ async function tryCallReady() {
 // Try immediately
 tryCallReady();
 
+// Also check window.sdk after a short delay (desktop might inject it later)
+setTimeout(() => {
+  if (!window.__sdkReadyCalled) {
+    console.log("=== Checking window.sdk after delay ===");
+    tryCallReady();
+  }
+}, 500);
+
 // If that didn't work, poll for SDK (simpler approach)
 let pollAttempts = 0;
-const maxPollAttempts = 20; // 2 seconds
+const maxPollAttempts = 30; // 3 seconds
 const pollInterval = setInterval(async () => {
   pollAttempts++;
-  
+
   if (window.__sdkReadyCalled) {
     clearInterval(pollInterval);
     return;
   }
-  
+
   const success = await tryCallReady();
   if (success || pollAttempts >= maxPollAttempts) {
     clearInterval(pollInterval);
     if (!success) {
-      console.warn("=== SDK ready() not called after polling - app will continue anyway ===");
+      console.warn(
+        "=== SDK ready() not called after polling - app will continue anyway ==="
+      );
       window.__sdkReadyCalled = true; // Mark as done
+      // Force show content after timeout
+      setTimeout(() => {
+        forceShowContent();
+      }, 100);
     }
   }
 }, 100);
@@ -232,7 +258,20 @@ async function init() {
     // If it wasn't called yet, try one more time (but don't block)
     if (!window.__sdkReadyCalled) {
       console.log("=== INIT: ready() not called yet, trying one more time ===");
-      tryCallReady();
+      // Check both imported sdk and window.sdk
+      const sdkToUse = sdk || window.sdk;
+      if (
+        sdkToUse &&
+        sdkToUse.actions &&
+        typeof sdkToUse.actions.ready === "function"
+      ) {
+        sdkToUse.actions.ready().catch((err) => {
+          console.log(
+            "ready() call in init() failed (non-blocking):",
+            err.message
+          );
+        });
+      }
     }
 
     // Initialize dark mode FIRST so content is visible
