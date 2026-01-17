@@ -59,8 +59,17 @@ window.addEventListener("unhandledrejection", (event) => {
 // SIMPLE: Try to call ready() immediately, then poll if needed
 // Also check window.sdk in case SDK is injected there
 async function tryCallReady() {
+  console.log("=== tryCallReady() called ===");
+  console.log("Checking for SDK...");
+  console.log("sdk (imported):", sdk);
+  console.log("window.sdk:", window.sdk);
+  
   // Check both sdk (imported) and window.sdk (injected)
   const sdkToUse = sdk || window.sdk;
+  
+  console.log("sdkToUse:", sdkToUse);
+  console.log("sdkToUse?.actions:", sdkToUse?.actions);
+  console.log("sdkToUse?.actions?.ready:", typeof sdkToUse?.actions?.ready);
 
   if (
     sdkToUse &&
@@ -75,46 +84,62 @@ async function tryCallReady() {
       window.__sdkReadyCalled = true;
       return true;
     } catch (error) {
-      console.log(
+      console.error(
         "=== SDK.ACTIONS.READY() ERROR (non-blocking):",
         error.message
       );
+      console.error("Error stack:", error.stack);
       window.__sdkReadyCalled = true; // Mark as attempted
       return false;
     }
+  } else {
+    console.warn("=== SDK NOT AVAILABLE FOR ready() CALL ===");
+    console.warn("sdkToUse:", sdkToUse);
+    console.warn("Has actions?", !!sdkToUse?.actions);
+    console.warn("Has ready function?", typeof sdkToUse?.actions?.ready === "function");
   }
   return false;
 }
 
 // Try immediately
+console.log("=== Attempting immediate ready() call ===");
 tryCallReady();
 
 // Also check window.sdk after a short delay (desktop might inject it later)
 setTimeout(() => {
+  console.log("=== Checking window.sdk after 500ms delay ===");
+  console.log("window.__sdkReadyCalled:", window.__sdkReadyCalled);
   if (!window.__sdkReadyCalled) {
-    console.log("=== Checking window.sdk after delay ===");
+    console.log("=== SDK ready() not called yet, trying again ===");
     tryCallReady();
+  } else {
+    console.log("=== SDK ready() already called, skipping ===");
   }
 }, 500);
 
 // If that didn't work, poll for SDK (simpler approach)
+console.log("=== Starting SDK polling (every 100ms for 3 seconds) ===");
 let pollAttempts = 0;
 const maxPollAttempts = 30; // 3 seconds
 const pollInterval = setInterval(async () => {
   pollAttempts++;
+  console.log(`=== Poll attempt ${pollAttempts}/${maxPollAttempts} ===`);
 
   if (window.__sdkReadyCalled) {
+    console.log("=== SDK ready() was called, stopping poll ===");
     clearInterval(pollInterval);
     return;
   }
 
   const success = await tryCallReady();
   if (success || pollAttempts >= maxPollAttempts) {
+    console.log(`=== Polling stopped: success=${success}, attempts=${pollAttempts} ===`);
     clearInterval(pollInterval);
     if (!success) {
-      console.warn(
+      console.error(
         "=== SDK ready() not called after polling - app will continue anyway ==="
       );
+      console.error("This means the SDK is not available on desktop Farcaster!");
       window.__sdkReadyCalled = true; // Mark as done
       // Force show content after timeout
       setTimeout(() => {
@@ -127,14 +152,19 @@ const pollInterval = setInterval(async () => {
             document.querySelector('[class*="splash"]') ||
             document.querySelector('[id*="splash"]');
           if (splash) {
+            console.log("=== Found splash element, trying to hide it ===");
             splash.style.display = "none";
             splash.style.visibility = "hidden";
             splash.style.opacity = "0";
             splash.style.pointerEvents = "none";
             splash.style.position = "fixed";
             splash.style.top = "-9999px";
+          } else {
+            console.warn("=== Could not find splash element to hide ===");
           }
-        } catch (e) {}
+        } catch (e) {
+          console.error("=== Error trying to hide splash:", e);
+        }
       }, 100);
     }
   }
@@ -1389,7 +1419,9 @@ async function updateUserDisplay() {
 
     // Handle 400 errors gracefully - don't let them block the app
     if (response.status === 400) {
-      console.log("[updateUserDisplay] API returned 400 (bad request), skipping");
+      console.log(
+        "[updateUserDisplay] API returned 400 (bad request), skipping"
+      );
       return;
     }
 
