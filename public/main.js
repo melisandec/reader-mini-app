@@ -27,16 +27,31 @@ import {
 (async function () {
   // Suppress embedded-wallets JSON errors (they're harmless SDK internal errors)
   const originalConsoleError = console.error;
-  console.error = function(...args) {
-    const message = args.join(' ');
+  console.error = function (...args) {
+    const message = args.join(" ");
     // Filter out known harmless SDK errors
-    if (message.includes('Invalid JSON message received') || 
-        message.includes('embedded-wallets')) {
+    if (
+      message.includes("Invalid JSON message received") ||
+      message.includes("embedded-wallets")
+    ) {
       // Silently ignore - these are SDK internal errors that don't affect functionality
       return;
     }
     originalConsoleError.apply(console, args);
   };
+
+  // Catch unhandled promise rejections from SDK (like embedded-wallets errors)
+  window.addEventListener('unhandledrejection', (event) => {
+    const message = event.reason?.message || String(event.reason || '');
+    if (
+      message.includes("Invalid JSON message received") ||
+      message.includes("embedded-wallets")
+    ) {
+      // Prevent these errors from blocking the app
+      event.preventDefault();
+      return;
+    }
+  });
 
   let attempts = 0;
   const maxAttempts = 100; // 10 seconds max (100ms intervals)
@@ -59,16 +74,36 @@ import {
         }
 
         // Call ready() to hide splash screen
-        await sdk.actions.ready();
-        console.log(
-          "=== SDK ready() completed - splash screen should hide ==="
-        );
+        // Wrap in try-catch to handle any errors gracefully
+        try {
+          await sdk.actions.ready();
+          console.log(
+            "=== SDK ready() completed - splash screen should hide ==="
+          );
+        } catch (readyError) {
+          // Check if it's an embedded-wallets error
+          const errorMsg = readyError?.message || String(readyError || '');
+          if (
+            !errorMsg.includes("embedded-wallets") &&
+            !errorMsg.includes("Invalid JSON")
+          ) {
+            console.error(
+              "=== SDK ready() error (will retry in init()):",
+              errorMsg
+            );
+          }
+          // Don't throw - let init() retry
+        }
       } catch (e) {
-        // Ignore embedded-wallets errors
-        if (!e.message?.includes('embedded-wallets') && !e.message?.includes('Invalid JSON')) {
+        // Catch any other errors during SDK initialization
+        const errorMsg = e?.message || String(e || '');
+        if (
+          !errorMsg.includes("embedded-wallets") &&
+          !errorMsg.includes("Invalid JSON")
+        ) {
           console.error(
-            "=== SDK ready() error (will retry in init()):",
-            e.message
+            "=== SDK initialization error (will retry in init()):",
+            errorMsg
           );
         }
         // Silent fail - will retry in init()
@@ -116,9 +151,11 @@ async function callSdkReady() {
         return;
       } catch (e) {
         // Ignore embedded-wallets JSON errors (harmless SDK internal errors)
-        if (!e.message?.includes('embedded-wallets') && 
-            !e.message?.includes('Invalid JSON') &&
-            !e.stack?.includes('embedded-wallets')) {
+        if (
+          !e.message?.includes("embedded-wallets") &&
+          !e.message?.includes("Invalid JSON") &&
+          !e.stack?.includes("embedded-wallets")
+        ) {
           console.error("=== callSdkReady: Error calling ready():", e.message);
         }
         return; // Don't retry if it errors
