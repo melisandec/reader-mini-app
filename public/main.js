@@ -1129,9 +1129,18 @@ let signinAttempted = false;
 
 /**
  * Identify user via Farcaster
+ * IMPORTANT: This is called AFTER ready() and AFTER app renders
+ * Authentication is optional - app works without it
+ * This is only needed to save user data to the server
  */
 async function identifyUser() {
-  console.log("=== identifyUser() called ===");
+  console.log("=== identifyUser() called (non-blocking, after app renders) ===");
+  
+  // Don't block if SDK isn't available
+  if (!sdk) {
+    console.log("SDK not available for user identification - app continues without auth");
+    return;
+  }
   console.log("Current user:", currentUser);
 
   // Don't retry if we already have a user
