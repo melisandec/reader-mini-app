@@ -236,8 +236,12 @@ export function recalculateStats() {
       sessions = [];
     }
     
+    // Directly read from localStorage to avoid infinite loop with loadStats()
     try {
-      existingStats = loadStats();
+      const data = localStorage.getItem(getStorageKey(STORAGE_KEYS.STATS));
+      if (data) {
+        existingStats = JSON.parse(data);
+      }
     } catch (e) {
       console.error('Error loading stats in recalculateStats:', e);
       existingStats = null;
@@ -356,14 +360,20 @@ export function loadStats() {
   try {
     const data = localStorage.getItem(getStorageKey(STORAGE_KEYS.STATS));
     if (!data) {
-      // If no stats exist, recalculate them
-      return recalculateStats();
+      // If no stats exist, return default stats (don't call recalculateStats to avoid infinite loop)
+      return createUserStats();
     }
     
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    // Validate the parsed data has required fields
+    if (parsed && typeof parsed === 'object') {
+      return parsed;
+    }
+    return createUserStats();
   } catch (error) {
     console.error('Error loading stats:', error);
-    return recalculateStats();
+    // Return default stats instead of calling recalculateStats to avoid infinite loop
+    return createUserStats();
   }
 }
 
