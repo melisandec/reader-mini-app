@@ -175,34 +175,59 @@ async function callSdkReady() {
 // Initialize the Farcaster Mini App SDK
 async function init() {
   try {
+    console.log("=== INIT: Starting app initialization ===");
+    
     // Call ready() again in case top-level call failed
-    await callSdkReady();
+    // Don't await - make it non-blocking so app can render
+    callSdkReady().catch(err => {
+      console.log("SDK ready() failed (non-blocking):", err.message);
+    });
 
-    // Continue with initialization
+    // Initialize dark mode FIRST so content is visible
+    initDarkMode();
+    console.log("=== INIT: Dark mode initialized ===");
+
+    // Set time-based greeting
+    updateTimeBasedGreeting();
+    console.log("=== INIT: Greeting updated ===");
+
+    // Initialize previous stats tracking
+    const stats = recalculateStats();
+    savePreviousStats(stats);
+    console.log("=== INIT: Stats recalculated ===");
+
+    // Load and display stats - THIS IS CRITICAL FOR RENDERING
+    displayStats();
+    console.log("=== INIT: Stats displayed ===");
+
+    // Display leaderboard
+    displayLeaderboard().catch(err => {
+      console.log("Leaderboard display failed (non-blocking):", err.message);
+    });
+
+    // Display challenges
+    displayChallenges().catch(err => {
+      console.log("Challenges display failed (non-blocking):", err.message);
+    });
+
+    // Continue with user identification in background (non-blocking)
     setTimeout(() => {
       identifyUser().catch(() => {});
       startUserSyncWatcher();
     }, 500);
 
-    // Initialize dark mode
-    initDarkMode();
-
-    // Note: identifyUser and startUserSyncWatcher are now called after SDK is ready
-
-    // Set time-based greeting
-    updateTimeBasedGreeting();
-
-    // Initialize previous stats tracking
-    const stats = recalculateStats();
-    savePreviousStats(stats);
-
-    // Load and display stats
-    displayStats();
-
-    console.log("READER app initialized");
+    console.log("=== INIT: READER app initialized successfully ===");
   } catch (error) {
-    console.error("Error initializing app:", error);
+    console.error("=== INIT: Error initializing app ===", error);
     console.error("Error stack:", error.stack);
+    
+    // Even on error, try to show something
+    try {
+      initDarkMode();
+      displayStats();
+    } catch (fallbackError) {
+      console.error("Fallback rendering also failed:", fallbackError);
+    }
   }
 }
 
