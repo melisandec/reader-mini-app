@@ -176,10 +176,10 @@ async function callSdkReady() {
 async function init() {
   try {
     console.log("=== INIT: Starting app initialization ===");
-    
+
     // Call ready() again in case top-level call failed
     // Don't await - make it non-blocking so app can render
-    callSdkReady().catch(err => {
+    callSdkReady().catch((err) => {
       console.log("SDK ready() failed (non-blocking):", err.message);
     });
 
@@ -201,12 +201,12 @@ async function init() {
     console.log("=== INIT: Stats displayed ===");
 
     // Display leaderboard
-    displayLeaderboard().catch(err => {
+    displayLeaderboard().catch((err) => {
       console.log("Leaderboard display failed (non-blocking):", err.message);
     });
 
     // Display challenges
-    displayChallenges().catch(err => {
+    displayChallenges().catch((err) => {
       console.log("Challenges display failed (non-blocking):", err.message);
     });
 
@@ -220,7 +220,7 @@ async function init() {
   } catch (error) {
     console.error("=== INIT: Error initializing app ===", error);
     console.error("Error stack:", error.stack);
-    
+
     // Even on error, try to show something
     try {
       initDarkMode();
@@ -3598,21 +3598,44 @@ console.log("Document ready state:", document.readyState);
 console.log("Window location:", window.location.href);
 
 // Initialize when DOM is ready
-if (document.readyState === "loading") {
-  console.log("Waiting for DOMContentLoaded...");
-  document.addEventListener("DOMContentLoaded", () => {
-    console.log("DOMContentLoaded fired, calling init()");
-    try {
-      init();
-    } catch (e) {
-      console.error("Error in init() from DOMContentLoaded:", e);
-    }
-  });
-} else {
-  console.log("DOM already ready, calling init() immediately");
+// Use requestAnimationFrame to ensure DOM is fully ready
+function startApp() {
+  console.log("=== START APP: DOM ready, starting initialization ===");
+  console.log("App element exists:", !!document.getElementById("app"));
+  console.log(
+    "Dashboard element exists:",
+    !!document.querySelector(".dashboard")
+  );
+
   try {
     init();
   } catch (e) {
-    console.error("Error in init() from immediate call:", e);
+    console.error("=== START APP: Error in init():", e);
+    console.error("Error stack:", e.stack);
+
+    // Emergency fallback: try to show something
+    const app = document.getElementById("app");
+    if (app) {
+      app.style.display = "block";
+      app.style.visibility = "visible";
+      app.style.opacity = "1";
+    }
   }
+}
+
+if (document.readyState === "loading") {
+  console.log("=== Waiting for DOMContentLoaded ===");
+  document.addEventListener("DOMContentLoaded", () => {
+    console.log("=== DOMContentLoaded fired ===");
+    // Use requestAnimationFrame to ensure rendering is ready
+    requestAnimationFrame(() => {
+      startApp();
+    });
+  });
+} else {
+  console.log("=== DOM already ready ===");
+  // Use requestAnimationFrame to ensure rendering is ready
+  requestAnimationFrame(() => {
+    startApp();
+  });
 }
