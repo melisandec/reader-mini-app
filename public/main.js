@@ -335,22 +335,37 @@ async function init() {
     }
 
     // Initialize previous stats tracking
+    // TEMPORARILY DISABLED: Stats recalculation might be causing errors on desktop
+    // Wrap in try-catch and make non-blocking
     try {
       const stats = recalculateStats();
       savePreviousStats(stats);
       console.log("=== INIT: Stats recalculated ===");
     } catch (e) {
-      console.error("Stats recalculation failed:", e);
+      console.error("Stats recalculation failed (non-blocking):", e);
+      // Continue anyway - don't let stats errors block initialization
     }
 
     // Load and display stats - THIS IS CRITICAL FOR RENDERING
+    // Make this non-blocking and wrap in better error handling
     try {
       displayStats();
       console.log("=== INIT: Stats displayed ===");
     } catch (e) {
-      console.error("Stats display failed:", e);
+      console.error("Stats display failed (non-blocking):", e);
       // Force show content even if display fails
       forceShowContent();
+      // Try to show at least basic UI
+      try {
+        const currentStreakEl = document.getElementById("currentStreakValue");
+        const longestStreakEl = document.getElementById("longestStreakValue");
+        const coinsEl = document.getElementById("coinsValue");
+        if (currentStreakEl) currentStreakEl.textContent = "0";
+        if (longestStreakEl) longestStreakEl.textContent = "0";
+        if (coinsEl) coinsEl.textContent = "0";
+      } catch (fallbackError) {
+        console.error("Fallback stats display also failed:", fallbackError);
+      }
     }
 
     // Display leaderboard
@@ -458,6 +473,12 @@ async function syncUserDataFromServer() {
     const response = await fetch(
       `/api/user-data?fid=${encodeURIComponent(currentUser.fid)}`
     );
+
+    // Handle 400 errors gracefully - don't let them block the app
+    if (response.status === 400) {
+      console.log("Sync: API returned 400 (bad request), skipping sync");
+      return;
+    }
 
     if (response.status === 404) {
       console.log("Sync: No remote data, uploading local if exists");
@@ -1365,6 +1386,12 @@ async function updateUserDisplay() {
     console.log(
       `[updateUserDisplay] Database API response status: ${response.status}`
     );
+
+    // Handle 400 errors gracefully - don't let them block the app
+    if (response.status === 400) {
+      console.log("[updateUserDisplay] API returned 400 (bad request), skipping");
+      return;
+    }
 
     if (response.ok) {
       const data = await response.json();
@@ -2642,7 +2669,9 @@ async function showCreateChallengeModal() {
   // TEMPORARILY DISABLED: Challenge identifyUser code that might conflict with ready()
   // If user not identified yet, just show message instead of trying to identify
   if (!currentUser?.fid && !currentUser?.username) {
-    console.log("User not identified - skipping challenge modal identifyUser (testing if this fixes desktop)");
+    console.log(
+      "User not identified - skipping challenge modal identifyUser (testing if this fixes desktop)"
+    );
     showNotification(
       "Please wait for the app to finish loading, then try again.",
       5000

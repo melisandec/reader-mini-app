@@ -225,8 +225,23 @@ export function clearAllSessions() {
  */
 export function recalculateStats() {
   try {
-    const sessions = loadSessions();
-    const existingStats = loadStats();
+    // Wrap in try-catch to prevent errors from blocking
+    let sessions = [];
+    let existingStats = null;
+    
+    try {
+      sessions = loadSessions();
+    } catch (e) {
+      console.error('Error loading sessions in recalculateStats:', e);
+      sessions = [];
+    }
+    
+    try {
+      existingStats = loadStats();
+    } catch (e) {
+      console.error('Error loading stats in recalculateStats:', e);
+      existingStats = null;
+    }
     
     // Preserve coins, badges, and daily goal from existing stats
     const stats = createUserStats();
