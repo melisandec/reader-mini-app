@@ -22,162 +22,81 @@ import {
   createChallengeProgress,
 } from "./models.js";
 
-// CRITICAL: Wait for SDK to be injected by Farcaster client, then call ready()
-// On desktop, the SDK might be injected later, so we need to poll for it
-(async function () {
-  // Suppress embedded-wallets JSON errors (they're harmless SDK internal errors)
-  const originalConsoleError = console.error;
-  console.error = function (...args) {
-    const message = args.join(" ");
-    // Filter out known harmless SDK errors
-    if (
-      message.includes("Invalid JSON message received") ||
-      message.includes("embedded-wallets")
-    ) {
-      // Silently ignore - these are SDK internal errors that don't affect functionality
-      return;
+// CRITICAL: According to Farcaster docs, call sdk.actions.ready() IMMEDIATELY when SDK is available
+// This is the SIMPLEST approach - no complex polling, just call it when we detect SDK
+
+// Suppress harmless SDK errors
+const originalConsoleError = console.error;
+console.error = function (...args) {
+  const message = args.join(" ");
+  if (
+    message.includes("Invalid JSON message received") ||
+    message.includes("embedded-wallets") ||
+    message.includes("message channel closed") ||
+    message.includes("asynchronous response")
+  ) {
+    return; // Silently ignore
+  }
+  originalConsoleError.apply(console, args);
+};
+
+// Catch unhandled promise rejections
+window.addEventListener("unhandledrejection", (event) => {
+  const message = event.reason?.message || String(event.reason || "");
+  const errorString = String(event.reason || "");
+  if (
+    message.includes("Invalid JSON message received") ||
+    message.includes("embedded-wallets") ||
+    message.includes("message channel closed") ||
+    errorString.includes("message channel closed") ||
+    errorString.includes("asynchronous response")
+  ) {
+    event.preventDefault();
+    return;
+  }
+});
+
+// SIMPLE: Try to call ready() immediately, then poll if needed
+async function tryCallReady() {
+  if (sdk && sdk.actions && typeof sdk.actions.ready === "function") {
+    try {
+      console.log("=== CALLING SDK.ACTIONS.READY() IMMEDIATELY ===");
+      await sdk.actions.ready();
+      console.log("=== SDK.ACTIONS.READY() SUCCESS ===");
+      window.__sdkReadyCalled = true;
+      return true;
+    } catch (error) {
+      console.log("=== SDK.ACTIONS.READY() ERROR (non-blocking):", error.message);
+      window.__sdkReadyCalled = true; // Mark as attempted
+      return false;
     }
-    originalConsoleError.apply(console, args);
-  };
+  }
+  return false;
+}
 
-  // Catch unhandled promise rejections from SDK (like embedded-wallets errors)
-  window.addEventListener("unhandledrejection", (event) => {
-    const message = event.reason?.message || String(event.reason || "");
-    const errorString = String(event.reason || "");
+// Try immediately
+tryCallReady();
 
-    // Prevent these errors from blocking the app
-    if (
-      message.includes("Invalid JSON message received") ||
-      message.includes("embedded-wallets") ||
-      message.includes("message channel closed") ||
-      errorString.includes("message channel closed") ||
-      errorString.includes("asynchronous response")
-    ) {
-      console.log(
-        "Suppressed SDK communication error (non-blocking):",
-        message
-      );
-      event.preventDefault();
-
-      // If SDK communication fails, force show content immediately
-      setTimeout(() => {
-        forceShowContent();
-        // Try to hide any splash screen
-        try {
-          const splash =
-            document.querySelector("[data-splash]") ||
-            document.querySelector(".splash") ||
-            document.querySelector('[class*="splash"]') ||
-            document.querySelector('[id*="splash"]');
-          if (splash) {
-            splash.style.display = "none";
-            splash.style.visibility = "hidden";
-            splash.style.opacity = "0";
-            splash.style.pointerEvents = "none";
-          }
-        } catch (e) {}
-      }, 100);
-      return;
+// If that didn't work, poll for SDK (simpler approach)
+let pollAttempts = 0;
+const maxPollAttempts = 20; // 2 seconds
+const pollInterval = setInterval(async () => {
+  pollAttempts++;
+  
+  if (window.__sdkReadyCalled) {
+    clearInterval(pollInterval);
+    return;
+  }
+  
+  const success = await tryCallReady();
+  if (success || pollAttempts >= maxPollAttempts) {
+    clearInterval(pollInterval);
+    if (!success) {
+      console.warn("=== SDK ready() not called after polling - app will continue anyway ===");
+      window.__sdkReadyCalled = true; // Mark as done
     }
-  });
-
-  let attempts = 0;
-  const maxAttempts = 50; // 5 seconds max (100ms intervals)
-  let readyCalled = false;
-
-  const waitForSdk = setInterval(async () => {
-    attempts++;
-
-    // Check if SDK is available and has the ready function
-    const sdkAvailable =
-      sdk && sdk.actions && typeof sdk.actions.ready === "function";
-
-    if (sdkAvailable && !readyCalled) {
-      readyCalled = true;
-      clearInterval(waitForSdk);
-      try {
-        console.log("=== SDK FOUND: Calling init() and ready() ===");
-        // Initialize SDK first if init() exists
-        if (typeof sdk.init === "function") {
-          await sdk.init();
-          console.log("=== SDK init() completed ===");
-        }
-
-        // Call ready() to hide splash screen
-        // Wrap in try-catch to handle any errors gracefully
-        try {
-          await sdk.actions.ready();
-          console.log(
-            "=== SDK ready() completed - splash screen should hide ==="
-          );
-        } catch (readyError) {
-          // Check if it's a known harmless error
-          const errorMsg = readyError?.message || String(readyError || "");
-          const errorString = String(readyError || "");
-
-          // These are communication errors that don't affect functionality
-          const isHarmlessError =
-            errorMsg.includes("embedded-wallets") ||
-            errorMsg.includes("Invalid JSON") ||
-            errorMsg.includes("message channel closed") ||
-            errorString.includes("message channel closed") ||
-            errorString.includes("asynchronous response");
-
-          if (!isHarmlessError) {
-            console.error(
-              "=== SDK ready() error (will retry in init()):",
-              errorMsg
-            );
-          } else {
-            console.log(
-              "=== SDK ready() communication error (non-blocking):",
-              errorMsg
-            );
-            // Force show content if SDK communication fails
-            setTimeout(() => {
-              forceShowContent();
-            }, 200);
-          }
-          // Don't throw - let init() retry
-        }
-      } catch (e) {
-        // Catch any other errors during SDK initialization
-        const errorMsg = e?.message || String(e || "");
-        if (
-          !errorMsg.includes("embedded-wallets") &&
-          !errorMsg.includes("Invalid JSON")
-        ) {
-          console.error(
-            "=== SDK initialization error (will retry in init()):",
-            errorMsg
-          );
-        }
-        // Silent fail - will retry in init()
-      }
-    } else if (attempts >= maxAttempts) {
-      clearInterval(waitForSdk);
-      console.warn(
-        "=== SDK not found after",
-        maxAttempts,
-        "attempts - forcing app to show anyway ==="
-      );
-      // Force show content even if SDK ready() never worked
-      setTimeout(() => {
-        forceShowContent();
-        // Try to hide splash screen manually
-        const splash =
-          document.querySelector("[data-splash]") ||
-          document.querySelector(".splash") ||
-          document.querySelector('[class*="splash"]');
-        if (splash) {
-          splash.style.display = "none";
-          splash.style.visibility = "hidden";
-          splash.style.opacity = "0";
-        }
-      }, 100);
-    }
-  }, 100);
-})();
+  }
+}, 100);
 
 // Global user state
 let currentUser = null;
@@ -311,11 +230,9 @@ async function init() {
 
     // According to Farcaster docs: ready() should already be called at top level
     // If it wasn't called yet, try one more time (but don't block)
-    if (!window.__sdkReadyCalled && sdk && sdk.actions && typeof sdk.actions.ready === "function") {
-      console.log("=== INIT: ready() not called yet, calling it now ===");
-      sdk.actions.ready().catch(err => {
-        console.log("ready() call in init() failed (non-blocking):", err.message);
-      });
+    if (!window.__sdkReadyCalled) {
+      console.log("=== INIT: ready() not called yet, trying one more time ===");
+      tryCallReady();
     }
 
     // Initialize dark mode FIRST so content is visible
@@ -1134,11 +1051,15 @@ let signinAttempted = false;
  * This is only needed to save user data to the server
  */
 async function identifyUser() {
-  console.log("=== identifyUser() called (non-blocking, after app renders) ===");
-  
+  console.log(
+    "=== identifyUser() called (non-blocking, after app renders) ==="
+  );
+
   // Don't block if SDK isn't available
   if (!sdk) {
-    console.log("SDK not available for user identification - app continues without auth");
+    console.log(
+      "SDK not available for user identification - app continues without auth"
+    );
     return;
   }
   console.log("Current user:", currentUser);
