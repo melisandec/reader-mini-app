@@ -136,6 +136,38 @@
           console.log("Could not hide splash:", e);
         }
       }, 2000);
+
+      // CRITICAL: Check if main.js script tag exists and is loading
+      setTimeout(() => {
+        console.log("=== INLINE: Checking if main.js is loading ===");
+        const scripts = document.querySelectorAll('script[src*="main"], script[src*="index"]');
+        console.log("Found script tags:", scripts.length);
+        scripts.forEach((script, i) => {
+          console.log(`Script ${i}:`, {
+            src: script.src,
+            type: script.type,
+            async: script.async,
+            defer: script.defer,
+            readyState: script.readyState
+          });
+        });
+
+        // Check for script loading errors
+        window.addEventListener('error', (e) => {
+          console.error("=== SCRIPT LOADING ERROR ===", e);
+          console.error("Error message:", e.message);
+          console.error("Error source:", e.filename);
+          console.error("Error line:", e.lineno);
+        }, true);
+
+        // Check for module loading errors
+        window.addEventListener('error', (e) => {
+          if (e.target && e.target.tagName === 'SCRIPT') {
+            console.error("=== MODULE SCRIPT ERROR ===", e);
+            console.error("Failed script:", e.target.src);
+          }
+        }, true);
+      }, 1000);
     </script>
   </head>
   <body style="display: block !important; visibility: visible !important; opacity: 1 !important; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;">

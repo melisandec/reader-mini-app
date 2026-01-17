@@ -63,10 +63,10 @@ async function tryCallReady() {
   console.log("Checking for SDK...");
   console.log("sdk (imported):", sdk);
   console.log("window.sdk:", window.sdk);
-  
+
   // Check both sdk (imported) and window.sdk (injected)
   const sdkToUse = sdk || window.sdk;
-  
+
   console.log("sdkToUse:", sdkToUse);
   console.log("sdkToUse?.actions:", sdkToUse?.actions);
   console.log("sdkToUse?.actions?.ready:", typeof sdkToUse?.actions?.ready);
@@ -96,7 +96,10 @@ async function tryCallReady() {
     console.warn("=== SDK NOT AVAILABLE FOR ready() CALL ===");
     console.warn("sdkToUse:", sdkToUse);
     console.warn("Has actions?", !!sdkToUse?.actions);
-    console.warn("Has ready function?", typeof sdkToUse?.actions?.ready === "function");
+    console.warn(
+      "Has ready function?",
+      typeof sdkToUse?.actions?.ready === "function"
+    );
   }
   return false;
 }
@@ -133,13 +136,17 @@ const pollInterval = setInterval(async () => {
 
   const success = await tryCallReady();
   if (success || pollAttempts >= maxPollAttempts) {
-    console.log(`=== Polling stopped: success=${success}, attempts=${pollAttempts} ===`);
+    console.log(
+      `=== Polling stopped: success=${success}, attempts=${pollAttempts} ===`
+    );
     clearInterval(pollInterval);
     if (!success) {
       console.error(
         "=== SDK ready() not called after polling - app will continue anyway ==="
       );
-      console.error("This means the SDK is not available on desktop Farcaster!");
+      console.error(
+        "This means the SDK is not available on desktop Farcaster!"
+      );
       window.__sdkReadyCalled = true; // Mark as done
       // Force show content after timeout
       setTimeout(() => {
