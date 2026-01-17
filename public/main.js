@@ -119,10 +119,50 @@ const pollInterval = setInterval(async () => {
       // Force show content after timeout
       setTimeout(() => {
         forceShowContent();
+        // Try to manually hide splash screen
+        try {
+          const splash = document.querySelector("[data-splash]") ||
+                        document.querySelector(".splash") ||
+                        document.querySelector('[class*="splash"]') ||
+                        document.querySelector('[id*="splash"]');
+          if (splash) {
+            splash.style.display = "none";
+            splash.style.visibility = "hidden";
+            splash.style.opacity = "0";
+            splash.style.pointerEvents = "none";
+            splash.style.position = "fixed";
+            splash.style.top = "-9999px";
+          }
+        } catch (e) {}
       }, 100);
     }
   }
 }, 100);
+
+// CRITICAL: After 3 seconds, force show app regardless of SDK status
+// This ensures desktop users aren't stuck on splash screen
+setTimeout(() => {
+  if (!window.__sdkReadyCalled) {
+    console.warn("=== TIMEOUT: Forcing app to show after 3 seconds (SDK ready() may have failed) ===");
+    window.__sdkReadyCalled = true;
+    forceShowContent();
+    // Try to hide splash screen
+    try {
+      const splash = document.querySelector("[data-splash]") ||
+                    document.querySelector(".splash") ||
+                    document.querySelector('[class*="splash"]') ||
+                    document.querySelector('[id*="splash"]');
+      if (splash) {
+        splash.style.display = "none";
+        splash.style.visibility = "hidden";
+        splash.style.opacity = "0";
+        splash.style.pointerEvents = "none";
+        splash.style.position = "fixed";
+        splash.style.top = "-9999px";
+      }
+    } catch (e) {}
+  }
+}, 3000);
 
 // Global user state
 let currentUser = null;
