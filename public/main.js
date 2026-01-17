@@ -41,8 +41,8 @@ import {
   };
 
   // Catch unhandled promise rejections from SDK (like embedded-wallets errors)
-  window.addEventListener('unhandledrejection', (event) => {
-    const message = event.reason?.message || String(event.reason || '');
+  window.addEventListener("unhandledrejection", (event) => {
+    const message = event.reason?.message || String(event.reason || "");
     if (
       message.includes("Invalid JSON message received") ||
       message.includes("embedded-wallets")
@@ -82,7 +82,7 @@ import {
           );
         } catch (readyError) {
           // Check if it's an embedded-wallets error
-          const errorMsg = readyError?.message || String(readyError || '');
+          const errorMsg = readyError?.message || String(readyError || "");
           if (
             !errorMsg.includes("embedded-wallets") &&
             !errorMsg.includes("Invalid JSON")
@@ -96,7 +96,7 @@ import {
         }
       } catch (e) {
         // Catch any other errors during SDK initialization
-        const errorMsg = e?.message || String(e || '');
+        const errorMsg = e?.message || String(e || "");
         if (
           !errorMsg.includes("embedded-wallets") &&
           !errorMsg.includes("Invalid JSON")
