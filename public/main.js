@@ -44,7 +44,7 @@ import {
   window.addEventListener("unhandledrejection", (event) => {
     const message = event.reason?.message || String(event.reason || "");
     const errorString = String(event.reason || "");
-    
+
     // Prevent these errors from blocking the app
     if (
       message.includes("Invalid JSON message received") ||
@@ -53,18 +53,22 @@ import {
       errorString.includes("message channel closed") ||
       errorString.includes("asynchronous response")
     ) {
-      console.log("Suppressed SDK communication error (non-blocking):", message);
+      console.log(
+        "Suppressed SDK communication error (non-blocking):",
+        message
+      );
       event.preventDefault();
-      
+
       // If SDK communication fails, force show content immediately
       setTimeout(() => {
         forceShowContent();
         // Try to hide any splash screen
         try {
-          const splash = document.querySelector("[data-splash]") ||
-                        document.querySelector(".splash") ||
-                        document.querySelector('[class*="splash"]') ||
-                        document.querySelector('[id*="splash"]');
+          const splash =
+            document.querySelector("[data-splash]") ||
+            document.querySelector(".splash") ||
+            document.querySelector('[class*="splash"]') ||
+            document.querySelector('[id*="splash"]');
           if (splash) {
             splash.style.display = "none";
             splash.style.visibility = "hidden";
@@ -110,22 +114,25 @@ import {
           // Check if it's a known harmless error
           const errorMsg = readyError?.message || String(readyError || "");
           const errorString = String(readyError || "");
-          
+
           // These are communication errors that don't affect functionality
-          const isHarmlessError = 
+          const isHarmlessError =
             errorMsg.includes("embedded-wallets") ||
             errorMsg.includes("Invalid JSON") ||
             errorMsg.includes("message channel closed") ||
             errorString.includes("message channel closed") ||
             errorString.includes("asynchronous response");
-          
+
           if (!isHarmlessError) {
             console.error(
               "=== SDK ready() error (will retry in init()):",
               errorMsg
             );
           } else {
-            console.log("=== SDK ready() communication error (non-blocking):", errorMsg);
+            console.log(
+              "=== SDK ready() communication error (non-blocking):",
+              errorMsg
+            );
             // Force show content if SDK communication fails
             setTimeout(() => {
               forceShowContent();
@@ -207,27 +214,30 @@ async function callSdkReady() {
         const errorMsg = e?.message || String(e || "");
         const errorString = String(e || "");
         const errorStack = e?.stack || "";
-        
+
         // These are communication errors that don't affect functionality
-        const isHarmlessError = 
+        const isHarmlessError =
           errorMsg.includes("embedded-wallets") ||
           errorMsg.includes("Invalid JSON") ||
           errorMsg.includes("message channel closed") ||
           errorString.includes("message channel closed") ||
           errorString.includes("asynchronous response") ||
           errorStack.includes("embedded-wallets");
-        
+
         if (!isHarmlessError) {
           console.error("=== callSdkReady: Error calling ready():", errorMsg);
         } else {
-          console.log("=== callSdkReady: Communication error (non-blocking):", errorMsg);
+          console.log(
+            "=== callSdkReady: Communication error (non-blocking):",
+            errorMsg
+          );
         }
-        
+
         // Force show content if SDK communication fails
         setTimeout(() => {
           forceShowContent();
         }, 200);
-        
+
         // Return false but don't throw
         return false;
       }

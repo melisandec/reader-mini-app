@@ -58,6 +58,37 @@
         forceShow();
       }
       
+      // Catch message channel errors early
+      window.addEventListener('unhandledrejection', (event) => {
+        const message = event.reason?.message || String(event.reason || '');
+        const errorString = String(event.reason || '');
+        if (
+          message.includes('message channel closed') ||
+          errorString.includes('message channel closed') ||
+          message.includes('asynchronous response') ||
+          errorString.includes('asynchronous response')
+        ) {
+          console.log("=== INLINE: Caught message channel error, forcing visibility ===");
+          event.preventDefault();
+          forceShow();
+          // Try to hide splash
+          setTimeout(() => {
+            try {
+              const splash = document.querySelector("[data-splash]") ||
+                            document.querySelector(".splash") ||
+                            document.querySelector('[class*="splash"]') ||
+                            document.querySelector('[id*="splash"]');
+              if (splash) {
+                splash.style.display = "none";
+                splash.style.visibility = "hidden";
+                splash.style.opacity = "0";
+                splash.style.pointerEvents = "none";
+              }
+            } catch (e) {}
+          }, 100);
+        }
+      });
+      
       // Also try on window load
       window.addEventListener('load', () => {
         console.log("=== INLINE: Window loaded, forcing visibility ===");
@@ -68,7 +99,13 @@
           if (window.sdk && window.sdk.actions && typeof window.sdk.actions.ready === "function") {
             console.log("=== INLINE: Found SDK in window, calling ready() as fallback ===");
             window.sdk.actions.ready().catch(e => {
-              // Ignore errors
+              // If it's a message channel error, force show content
+              const errorMsg = String(e || '');
+              if (errorMsg.includes('message channel closed') || 
+                  errorMsg.includes('asynchronous response')) {
+                console.log("=== INLINE: SDK ready() failed with message channel error, forcing visibility ===");
+                forceShow();
+              }
             });
           }
         }, 500);
