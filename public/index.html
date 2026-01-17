@@ -513,12 +513,81 @@
 
     
     <!-- Load main.js as module - Vite will replace this with the bundled file -->
-    <script type="module" src="main.js"></script>
+    <script type="module" src="main.js" onerror="console.error('=== MAIN.JS MODULE LOADING FAILED ===', this.src, arguments[0])"></script>
     
     <!-- Fallback: Try non-module script if module fails -->
     <script nomodule>
       console.error("=== MODULES NOT SUPPORTED ===");
       console.error("This browser does not support ES6 modules");
+    </script>
+
+    <!-- CRITICAL: Verify script loaded and diagnose issues -->
+    <script>
+      console.log("=== CHECKING IF MAIN.JS LOADED ===");
+      console.log("Script check running at:", new Date().toISOString());
+      
+      // Immediate check
+      console.log("Immediate check - window.__sdkReadyCalled:", window.__sdkReadyCalled);
+      
+      // Check after short delay
+      setTimeout(() => {
+        console.log("=== 500ms CHECK ===");
+        console.log("window.__sdkReadyCalled:", window.__sdkReadyCalled);
+        console.log("typeof window.init:", typeof window.init);
+        console.log("typeof window.tryCallReady:", typeof window.tryCallReady);
+        
+        // Check all script tags
+        const allScripts = document.querySelectorAll('script[src]');
+        console.log("All script tags with src:", allScripts.length);
+        allScripts.forEach((script, i) => {
+          console.log(`Script ${i}:`, {
+            src: script.src,
+            type: script.type,
+            readyState: script.readyState,
+            onerror: script.onerror ? 'has handler' : 'no handler'
+          });
+        });
+      }, 500);
+      
+      // Check after longer delay
+      setTimeout(() => {
+        console.log("=== 2000ms CHECK ===");
+        console.log("window.__sdkReadyCalled:", window.__sdkReadyCalled);
+        console.log("typeof window.init:", typeof window.init);
+        console.log("typeof window.tryCallReady:", typeof window.tryCallReady);
+        
+        // If main.js didn't load, try to load it manually
+        if (typeof window.init === 'undefined' && typeof window.tryCallReady === 'undefined') {
+          console.error("=== MAIN.JS DID NOT LOAD ===");
+          console.error("This means the module script failed to load or execute");
+          console.error("Please check:");
+          console.error("1. Network tab for failed requests to index-*.js");
+          console.error("2. Console for JavaScript errors");
+          console.error("3. If desktop Farcaster blocks module scripts");
+          
+          // Try to force show content anyway
+          const app = document.getElementById("app");
+          if (app) {
+            console.log("=== Forcing app to show despite module failure ===");
+            app.style.display = "block";
+            app.style.visibility = "visible";
+            app.style.opacity = "1";
+          }
+        } else {
+          console.log("=== MAIN.JS LOADED SUCCESSFULLY ===");
+        }
+      }, 2000);
+      
+      // Catch all script errors
+      window.addEventListener('error', (e) => {
+        if (e.target && e.target.tagName === 'SCRIPT') {
+          console.error("=== SCRIPT ERROR DETECTED ===");
+          console.error("Script src:", e.target.src);
+          console.error("Error message:", e.message);
+          console.error("Error filename:", e.filename);
+          console.error("Error line:", e.lineno);
+        }
+      }, true);
     </script>
   </body>
 </html>
