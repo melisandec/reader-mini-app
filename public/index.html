@@ -74,10 +74,30 @@
         }, 500);
       });
       
-      // Safety timeout: Force show after 2 seconds
+      // Safety timeout: Force show after 2 seconds and try to hide splash
       setTimeout(() => {
         console.log("=== INLINE: Safety timeout, forcing visibility ===");
         forceShow();
+        
+        // Try to hide splash screen manually if SDK ready() didn't work
+        try {
+          const splash = document.querySelector('[data-splash]') || 
+                        document.querySelector('.splash') ||
+                        document.querySelector('[class*="splash"]') ||
+                        document.querySelector('[id*="splash"]') ||
+                        document.querySelector('iframe[src*="splash"]');
+          if (splash) {
+            console.log("=== INLINE: Found splash element, hiding it ===");
+            splash.style.display = 'none';
+            splash.style.visibility = 'hidden';
+            splash.style.opacity = '0';
+            splash.style.pointerEvents = 'none';
+            splash.style.position = 'fixed';
+            splash.style.top = '-9999px';
+          }
+        } catch (e) {
+          console.log("Could not hide splash:", e);
+        }
       }, 2000);
     </script>
   </head>

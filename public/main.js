@@ -54,7 +54,8 @@ import {
   });
 
   let attempts = 0;
-  const maxAttempts = 100; // 10 seconds max (100ms intervals)
+  const maxAttempts = 50; // 5 seconds max (100ms intervals)
+  let readyCalled = false;
 
   const waitForSdk = setInterval(async () => {
     attempts++;
@@ -63,7 +64,8 @@ import {
     const sdkAvailable =
       sdk && sdk.actions && typeof sdk.actions.ready === "function";
 
-    if (sdkAvailable) {
+    if (sdkAvailable && !readyCalled) {
+      readyCalled = true;
       clearInterval(waitForSdk);
       try {
         console.log("=== SDK FOUND: Calling init() and ready() ===");
@@ -113,8 +115,21 @@ import {
       console.warn(
         "=== SDK not found after",
         maxAttempts,
-        "attempts - will retry in init() ==="
+        "attempts - forcing app to show anyway ==="
       );
+      // Force show content even if SDK ready() never worked
+      setTimeout(() => {
+        forceShowContent();
+        // Try to hide splash screen manually
+        const splash = document.querySelector('[data-splash]') || 
+                      document.querySelector('.splash') ||
+                      document.querySelector('[class*="splash"]');
+        if (splash) {
+          splash.style.display = 'none';
+          splash.style.visibility = 'hidden';
+          splash.style.opacity = '0';
+        }
+      }, 100);
     }
   }, 100);
 })();
@@ -135,7 +150,7 @@ let timerStartTime = null;
 async function callSdkReady() {
   // Wait for SDK to be available (with timeout)
   let attempts = 0;
-  const maxAttempts = 50; // 5 seconds
+  const maxAttempts = 30; // 3 seconds
 
   while (attempts < maxAttempts) {
     if (sdk && sdk.actions && typeof sdk.actions.ready === "function") {
@@ -148,7 +163,7 @@ async function callSdkReady() {
         }
         await sdk.actions.ready();
         console.log("=== callSdkReady: SUCCESS ===");
-        return;
+        return true;
       } catch (e) {
         // Ignore embedded-wallets JSON errors (harmless SDK internal errors)
         if (
@@ -158,7 +173,8 @@ async function callSdkReady() {
         ) {
           console.error("=== callSdkReady: Error calling ready():", e.message);
         }
-        return; // Don't retry if it errors
+        // Return false but don't throw
+        return false;
       }
     }
     attempts++;
@@ -168,32 +184,54 @@ async function callSdkReady() {
   console.warn(
     "=== callSdkReady: SDK not available after",
     maxAttempts,
-    "attempts ==="
+    "attempts - will force show content ==="
   );
+  
+  // Force show content if SDK ready() fails
+  setTimeout(() => {
+    forceShowContent();
+    // Try to hide splash screen manually
+    try {
+      const splash = document.querySelector('[data-splash]') || 
+                    document.querySelector('.splash') ||
+                    document.querySelector('[class*="splash"]') ||
+                    document.querySelector('[id*="splash"]');
+      if (splash) {
+        splash.style.display = 'none';
+        splash.style.visibility = 'hidden';
+        splash.style.opacity = '0';
+        splash.style.pointerEvents = 'none';
+      }
+    } catch (e) {
+      console.log("Could not manually hide splash:", e);
+    }
+  }, 500);
+  
+  return false;
 }
 
 // Force content to be visible
 function forceShowContent() {
   const app = document.getElementById("app");
   const dashboard = document.querySelector(".dashboard");
-  
+
   if (app) {
     app.style.display = "block";
     app.style.visibility = "visible";
     app.style.opacity = "1";
   }
-  
+
   if (dashboard) {
     dashboard.style.display = "block";
     dashboard.style.visibility = "visible";
     dashboard.style.opacity = "1";
   }
-  
+
   // Make sure body is visible
   document.body.style.display = "block";
   document.body.style.visibility = "visible";
   document.body.style.opacity = "1";
-  
+
   console.log("=== FORCE SHOW: Content visibility forced ===");
 }
 
@@ -201,14 +239,26 @@ function forceShowContent() {
 async function init() {
   try {
     console.log("=== INIT: Starting app initialization ===");
-    
+
     // FORCE content to be visible immediately
     forceShowContent();
 
     // Call ready() again in case top-level call failed
     // Don't await - make it non-blocking so app can render
-    callSdkReady().catch((err) => {
+    callSdkReady().then((success) => {
+      if (!success) {
+        console.log("=== INIT: SDK ready() failed, forcing content visibility ===");
+        // Force show content after a short delay if ready() failed
+        setTimeout(() => {
+          forceShowContent();
+        }, 1000);
+      }
+    }).catch((err) => {
       console.log("SDK ready() failed (non-blocking):", err.message);
+      // Force show content on error
+      setTimeout(() => {
+        forceShowContent();
+      }, 1000);
     });
 
     // Initialize dark mode FIRST so content is visible
@@ -3673,7 +3723,7 @@ function startApp() {
     // Emergency fallback: try to show something
     forceShowContent();
   }
-  
+
   // Safety timeout: Force show content after 1 second no matter what
   setTimeout(() => {
     console.log("=== SAFETY TIMEOUT: Forcing content visibility ===");
