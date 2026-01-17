@@ -172,10 +172,38 @@ async function callSdkReady() {
   );
 }
 
+// Force content to be visible
+function forceShowContent() {
+  const app = document.getElementById("app");
+  const dashboard = document.querySelector(".dashboard");
+  
+  if (app) {
+    app.style.display = "block";
+    app.style.visibility = "visible";
+    app.style.opacity = "1";
+  }
+  
+  if (dashboard) {
+    dashboard.style.display = "block";
+    dashboard.style.visibility = "visible";
+    dashboard.style.opacity = "1";
+  }
+  
+  // Make sure body is visible
+  document.body.style.display = "block";
+  document.body.style.visibility = "visible";
+  document.body.style.opacity = "1";
+  
+  console.log("=== FORCE SHOW: Content visibility forced ===");
+}
+
 // Initialize the Farcaster Mini App SDK
 async function init() {
   try {
     console.log("=== INIT: Starting app initialization ===");
+    
+    // FORCE content to be visible immediately
+    forceShowContent();
 
     // Call ready() again in case top-level call failed
     // Don't await - make it non-blocking so app can render
@@ -184,21 +212,39 @@ async function init() {
     });
 
     // Initialize dark mode FIRST so content is visible
-    initDarkMode();
-    console.log("=== INIT: Dark mode initialized ===");
+    try {
+      initDarkMode();
+      console.log("=== INIT: Dark mode initialized ===");
+    } catch (e) {
+      console.error("Dark mode init failed:", e);
+    }
 
     // Set time-based greeting
-    updateTimeBasedGreeting();
-    console.log("=== INIT: Greeting updated ===");
+    try {
+      updateTimeBasedGreeting();
+      console.log("=== INIT: Greeting updated ===");
+    } catch (e) {
+      console.error("Greeting update failed:", e);
+    }
 
     // Initialize previous stats tracking
-    const stats = recalculateStats();
-    savePreviousStats(stats);
-    console.log("=== INIT: Stats recalculated ===");
+    try {
+      const stats = recalculateStats();
+      savePreviousStats(stats);
+      console.log("=== INIT: Stats recalculated ===");
+    } catch (e) {
+      console.error("Stats recalculation failed:", e);
+    }
 
     // Load and display stats - THIS IS CRITICAL FOR RENDERING
-    displayStats();
-    console.log("=== INIT: Stats displayed ===");
+    try {
+      displayStats();
+      console.log("=== INIT: Stats displayed ===");
+    } catch (e) {
+      console.error("Stats display failed:", e);
+      // Force show content even if display fails
+      forceShowContent();
+    }
 
     // Display leaderboard
     displayLeaderboard().catch((err) => {
@@ -216,17 +262,25 @@ async function init() {
       startUserSyncWatcher();
     }, 500);
 
+    // Force show content again after a short delay
+    setTimeout(() => {
+      forceShowContent();
+    }, 100);
+
     console.log("=== INIT: READER app initialized successfully ===");
   } catch (error) {
     console.error("=== INIT: Error initializing app ===", error);
     console.error("Error stack:", error.stack);
 
     // Even on error, try to show something
+    forceShowContent();
     try {
       initDarkMode();
       displayStats();
     } catch (fallbackError) {
       console.error("Fallback rendering also failed:", fallbackError);
+      // Still force show content
+      forceShowContent();
     }
   }
 }
@@ -3607,6 +3661,9 @@ function startApp() {
     !!document.querySelector(".dashboard")
   );
 
+  // Force show content immediately
+  forceShowContent();
+
   try {
     init();
   } catch (e) {
@@ -3614,13 +3671,14 @@ function startApp() {
     console.error("Error stack:", e.stack);
 
     // Emergency fallback: try to show something
-    const app = document.getElementById("app");
-    if (app) {
-      app.style.display = "block";
-      app.style.visibility = "visible";
-      app.style.opacity = "1";
-    }
+    forceShowContent();
   }
+  
+  // Safety timeout: Force show content after 1 second no matter what
+  setTimeout(() => {
+    console.log("=== SAFETY TIMEOUT: Forcing content visibility ===");
+    forceShowContent();
+  }, 1000);
 }
 
 if (document.readyState === "loading") {

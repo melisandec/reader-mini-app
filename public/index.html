@@ -22,24 +22,63 @@
     <link rel="stylesheet" href="styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
-    <!-- CRITICAL: Inline script to call sdk.ready() as fallback -->
+    <!-- CRITICAL: Inline script to ensure content is visible -->
     <script>
       console.log("=== INLINE SCRIPT: Starting ===");
-      console.log("=== This is a fallback - main.js should handle SDK ===");
       
-      // This is just a fallback - the main module should handle it
-      // But we'll try to help if the module fails to load
+      // Force content to be visible immediately
+      function forceShow() {
+        const app = document.getElementById("app");
+        const dashboard = document.querySelector(".dashboard");
+        if (app) {
+          app.style.display = "block";
+          app.style.visibility = "visible";
+          app.style.opacity = "1";
+        }
+        if (dashboard) {
+          dashboard.style.display = "block";
+          dashboard.style.visibility = "visible";
+          dashboard.style.opacity = "1";
+        }
+        if (document.body) {
+          document.body.style.display = "block";
+          document.body.style.visibility = "visible";
+          document.body.style.opacity = "1";
+        }
+      }
+      
+      // Try to show content as soon as possible
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", () => {
+          console.log("=== INLINE: DOMContentLoaded, forcing visibility ===");
+          forceShow();
+        });
+      } else {
+        console.log("=== INLINE: DOM already ready, forcing visibility ===");
+        forceShow();
+      }
+      
+      // Also try on window load
       window.addEventListener('load', () => {
+        console.log("=== INLINE: Window loaded, forcing visibility ===");
+        forceShow();
+        
+        // Check if SDK is available via window (injected by Farcaster)
         setTimeout(() => {
-          // Check if SDK is available via window (injected by Farcaster)
           if (window.sdk && window.sdk.actions && typeof window.sdk.actions.ready === "function") {
             console.log("=== INLINE: Found SDK in window, calling ready() as fallback ===");
             window.sdk.actions.ready().catch(e => {
-              console.error("=== INLINE: Fallback ready() error:", e);
+              // Ignore errors
             });
           }
-        }, 1000); // Wait 1 second after page load
+        }, 500);
       });
+      
+      // Safety timeout: Force show after 2 seconds
+      setTimeout(() => {
+        console.log("=== INLINE: Safety timeout, forcing visibility ===");
+        forceShow();
+      }, 2000);
     </script>
   </head>
   <body>
