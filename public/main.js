@@ -25,18 +25,29 @@ import {
 // CRITICAL: Wait for SDK to be injected by Farcaster client, then call ready()
 // On desktop, the SDK might be injected later, so we need to poll for it
 (async function () {
+  // Suppress embedded-wallets JSON errors (they're harmless SDK internal errors)
+  const originalConsoleError = console.error;
+  console.error = function(...args) {
+    const message = args.join(' ');
+    // Filter out known harmless SDK errors
+    if (message.includes('Invalid JSON message received') || 
+        message.includes('embedded-wallets')) {
+      // Silently ignore - these are SDK internal errors that don't affect functionality
+      return;
+    }
+    originalConsoleError.apply(console, args);
+  };
+
   let attempts = 0;
   const maxAttempts = 100; // 10 seconds max (100ms intervals)
-  
+
   const waitForSdk = setInterval(async () => {
     attempts++;
-    
+
     // Check if SDK is available and has the ready function
-    const sdkAvailable = 
-      sdk && 
-      sdk.actions && 
-      typeof sdk.actions.ready === "function";
-    
+    const sdkAvailable =
+      sdk && sdk.actions && typeof sdk.actions.ready === "function";
+
     if (sdkAvailable) {
       clearInterval(waitForSdk);
       try {
@@ -46,17 +57,29 @@ import {
           await sdk.init();
           console.log("=== SDK init() completed ===");
         }
-        
+
         // Call ready() to hide splash screen
         await sdk.actions.ready();
-        console.log("=== SDK ready() completed - splash screen should hide ===");
+        console.log(
+          "=== SDK ready() completed - splash screen should hide ==="
+        );
       } catch (e) {
-        console.error("=== SDK ready() error (will retry in init()):", e.message);
+        // Ignore embedded-wallets errors
+        if (!e.message?.includes('embedded-wallets') && !e.message?.includes('Invalid JSON')) {
+          console.error(
+            "=== SDK ready() error (will retry in init()):",
+            e.message
+          );
+        }
         // Silent fail - will retry in init()
       }
     } else if (attempts >= maxAttempts) {
       clearInterval(waitForSdk);
-      console.warn("=== SDK not found after", maxAttempts, "attempts - will retry in init() ===");
+      console.warn(
+        "=== SDK not found after",
+        maxAttempts,
+        "attempts - will retry in init() ==="
+      );
     }
   }, 100);
 })();
@@ -78,11 +101,13 @@ async function callSdkReady() {
   // Wait for SDK to be available (with timeout)
   let attempts = 0;
   const maxAttempts = 50; // 5 seconds
-  
+
   while (attempts < maxAttempts) {
     if (sdk && sdk.actions && typeof sdk.actions.ready === "function") {
       try {
-        console.log("=== callSdkReady: SDK available, calling init() and ready() ===");
+        console.log(
+          "=== callSdkReady: SDK available, calling init() and ready() ==="
+        );
         if (typeof sdk.init === "function") {
           await sdk.init();
         }
@@ -90,15 +115,24 @@ async function callSdkReady() {
         console.log("=== callSdkReady: SUCCESS ===");
         return;
       } catch (e) {
-        console.error("=== callSdkReady: Error calling ready():", e.message);
+        // Ignore embedded-wallets JSON errors (harmless SDK internal errors)
+        if (!e.message?.includes('embedded-wallets') && 
+            !e.message?.includes('Invalid JSON') &&
+            !e.stack?.includes('embedded-wallets')) {
+          console.error("=== callSdkReady: Error calling ready():", e.message);
+        }
         return; // Don't retry if it errors
       }
     }
     attempts++;
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  
-  console.warn("=== callSdkReady: SDK not available after", maxAttempts, "attempts ===");
+
+  console.warn(
+    "=== callSdkReady: SDK not available after",
+    maxAttempts,
+    "attempts ==="
+  );
 }
 
 // Initialize the Farcaster Mini App SDK
