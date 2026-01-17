@@ -309,27 +309,14 @@ async function init() {
     // FORCE content to be visible immediately
     forceShowContent();
 
-    // Call ready() again in case top-level call failed
-    // Don't await - make it non-blocking so app can render
-    callSdkReady()
-      .then((success) => {
-        if (!success) {
-          console.log(
-            "=== INIT: SDK ready() failed, forcing content visibility ==="
-          );
-          // Force show content after a short delay if ready() failed
-          setTimeout(() => {
-            forceShowContent();
-          }, 1000);
-        }
-      })
-      .catch((err) => {
-        console.log("SDK ready() failed (non-blocking):", err.message);
-        // Force show content on error
-        setTimeout(() => {
-          forceShowContent();
-        }, 1000);
+    // According to Farcaster docs: ready() should already be called at top level
+    // If it wasn't called yet, try one more time (but don't block)
+    if (!window.__sdkReadyCalled && sdk && sdk.actions && typeof sdk.actions.ready === "function") {
+      console.log("=== INIT: ready() not called yet, calling it now ===");
+      sdk.actions.ready().catch(err => {
+        console.log("ready() call in init() failed (non-blocking):", err.message);
       });
+    }
 
     // Initialize dark mode FIRST so content is visible
     try {
@@ -376,11 +363,17 @@ async function init() {
       console.log("Challenges display failed (non-blocking):", err.message);
     });
 
-    // Continue with user identification in background (non-blocking)
+    // CRITICAL: Authentication happens AFTER ready() and AFTER app renders
+    // According to Farcaster docs, authentication is optional and should not block the app
+    // We identify the user in the background so data can be saved
     setTimeout(() => {
-      identifyUser().catch(() => {});
+      console.log("=== INIT: Starting user identification (non-blocking) ===");
+      identifyUser().catch((err) => {
+        console.log("User identification failed (non-blocking):", err.message);
+        // App continues to work even without authentication
+      });
       startUserSyncWatcher();
-    }, 500);
+    }, 1000); // Wait 1 second after app renders to authenticate
 
     // Force show content again after a short delay
     setTimeout(() => {
