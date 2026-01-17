@@ -121,10 +121,11 @@ const pollInterval = setInterval(async () => {
         forceShowContent();
         // Try to manually hide splash screen
         try {
-          const splash = document.querySelector("[data-splash]") ||
-                        document.querySelector(".splash") ||
-                        document.querySelector('[class*="splash"]') ||
-                        document.querySelector('[id*="splash"]');
+          const splash =
+            document.querySelector("[data-splash]") ||
+            document.querySelector(".splash") ||
+            document.querySelector('[class*="splash"]') ||
+            document.querySelector('[id*="splash"]');
           if (splash) {
             splash.style.display = "none";
             splash.style.visibility = "hidden";
@@ -143,15 +144,18 @@ const pollInterval = setInterval(async () => {
 // This ensures desktop users aren't stuck on splash screen
 setTimeout(() => {
   if (!window.__sdkReadyCalled) {
-    console.warn("=== TIMEOUT: Forcing app to show after 3 seconds (SDK ready() may have failed) ===");
+    console.warn(
+      "=== TIMEOUT: Forcing app to show after 3 seconds (SDK ready() may have failed) ==="
+    );
     window.__sdkReadyCalled = true;
     forceShowContent();
     // Try to hide splash screen
     try {
-      const splash = document.querySelector("[data-splash]") ||
-                    document.querySelector(".splash") ||
-                    document.querySelector('[class*="splash"]') ||
-                    document.querySelector('[id*="splash"]');
+      const splash =
+        document.querySelector("[data-splash]") ||
+        document.querySelector(".splash") ||
+        document.querySelector('[class*="splash"]') ||
+        document.querySelector('[id*="splash"]');
       if (splash) {
         splash.style.display = "none";
         splash.style.visibility = "hidden";
@@ -715,7 +719,10 @@ function startUserSyncWatcher() {
       }
     }
 
+    // TEMPORARILY DISABLED: sdk.context() might conflict with ready() on desktop
+    // This was added in commit 8eeffa4 and may be causing desktop loading issues
     // Fallback: try context
+    /*
     if (sdk && typeof sdk.context === "function") {
       try {
         const context = await sdk.context();
@@ -763,6 +770,7 @@ function startUserSyncWatcher() {
         // Ignore errors - just try again next time
       }
     }
+    */
 
     if (Date.now() - startedAt > 4000) {
       clearInterval(userSyncWatcher);
@@ -1263,7 +1271,10 @@ async function identifyUser() {
       }
     }
 
+    // TEMPORARILY DISABLED: sdk.context() might conflict with ready() on desktop
+    // This was added in commit 8eeffa4 and may be causing desktop loading issues
     // Fallback: Try to access context as a property (not a function)
+    /*
     let context = null;
     if (!userInfo && sdk?.context) {
       try {
@@ -1277,6 +1288,8 @@ async function identifyUser() {
         // Context not available - this is normal
       }
     }
+    */
+    let context = null; // Set to null for testing
 
     // Use userInfo from quickAuth if available, otherwise use context
     const user = userInfo || context?.user;
@@ -2626,6 +2639,20 @@ function setupCreateChallengeButton() {
  * Show create challenge modal
  */
 async function showCreateChallengeModal() {
+  // TEMPORARILY DISABLED: Challenge identifyUser code that might conflict with ready()
+  // If user not identified yet, just show message instead of trying to identify
+  if (!currentUser?.fid && !currentUser?.username) {
+    console.log("User not identified - skipping challenge modal identifyUser (testing if this fixes desktop)");
+    showNotification(
+      "Please wait for the app to finish loading, then try again.",
+      5000
+    );
+    return;
+  }
+
+  // DISABLED CODE BELOW - Testing if this was causing desktop loading issue
+  // This code calls sdk.quickAuth.getToken() and sdk.context() which might conflict with ready()
+  /*
   // If user not identified yet, try to get user info using quickAuth (recommended)
   if (!currentUser?.fid && !currentUser?.username) {
     console.log("User not identified, attempting to get user info...");
@@ -2758,6 +2785,7 @@ async function showCreateChallengeModal() {
     );
     return; // Don't show the form if we can't identify the user
   }
+  */
 
   const modal = document.createElement("div");
   modal.className = "modal-overlay";
